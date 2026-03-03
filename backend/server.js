@@ -11,7 +11,6 @@ const corsOptions = {
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type"],
 };
-app.options("*", cors(corsOptions)); // Explicitly handle preflight for ALL routes
 app.use(cors(corsOptions));
 app.use(express.json());
 
