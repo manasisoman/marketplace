@@ -2,7 +2,5 @@
 node_modules/
 .env
 .env.local
+.envrc
 .DS_Store
-
-# .envrc is intentionally committed — it contains no secret values
-# Actual secrets are injected via Devin secrets manager or loaded from backend/.env locally
