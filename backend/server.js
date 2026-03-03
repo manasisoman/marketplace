@@ -6,8 +6,14 @@ require("dotenv").config();
 const app = express();
 
 // Middleware: these run on EVERY request before your routes
-app.use(cors());         // Allow the React frontend to talk to this server
-app.use(express.json()); // Parse JSON request bodies automatically
+const corsOptions = {
+  origin: "http://localhost:3000",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type"],
+};
+app.options("*", cors(corsOptions)); // Explicitly handle preflight for ALL routes
+app.use(cors(corsOptions));
+app.use(express.json());
 
 // Connect to MongoDB
 mongoose
