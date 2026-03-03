@@ -10,21 +10,34 @@ function AddProductForm({ onSubmit, onCancel }) {
   const [image, setImage] = useState("");
   const [category, setCategory] = useState("General");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault(); // Prevent the page from reloading (default form behavior)
     setError("");
 
     if (!name.trim()) return setError("Product name is required.");
     if (!price || isNaN(price) || Number(price) <= 0) return setError("Enter a valid price.");
 
-    onSubmit({
-      name: name.trim(),
-      price: Number(price),
-      description: description.trim(),
-      image: image.trim(),
-      category,
-    });
+    setLoading(true);
+    try {
+      await onSubmit({
+        name: name.trim(),
+        price: Number(price),
+        description: description.trim(),
+        image: image.trim(),
+        category,
+      });
+    } catch (err) {
+      // Show a helpful error message — most likely the backend isn't running
+      if (err.code === "ERR_NETWORK" || err.message === "Network Error") {
+        setError("Cannot reach the server. Make sure the backend is running on port 5000.");
+      } else {
+        setError(err.response?.data?.error || "Something went wrong. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -91,8 +104,8 @@ function AddProductForm({ onSubmit, onCancel }) {
           <button type="button" className="btn btn-secondary" onClick={onCancel}>
             Cancel
           </button>
-          <button type="submit" className="btn btn-primary">
-            List Item
+          <button type="submit" className="btn btn-primary" disabled={loading}>
+            {loading ? "Listing..." : "List Item"}
           </button>
         </div>
       </form>

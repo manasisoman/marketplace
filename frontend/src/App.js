@@ -58,13 +58,9 @@ function App() {
 
   // USES ENDPOINT 5: CREATE product
   const addProduct = async (productData) => {
-    try {
-      await axios.post(`${API}/products`, productData);
-      fetchProducts();
-      setView("home");
-    } catch (err) {
-      console.error("Error adding product:", err);
-    }
+    await axios.post(`${API}/products`, productData); // let errors bubble up to the form
+    fetchProducts();
+    setView("home");
   };
 
   // USES ENDPOINT 7: DELETE product
