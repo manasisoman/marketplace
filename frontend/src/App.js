@@ -6,7 +6,7 @@ import AddProductForm from "./components/AddProductForm";
 import Cart from "./components/Cart";
 import "./App.css";
 
-const API = "http://localhost:5000";
+const API = "";
 
 function App() {
   // State = data that React tracks and re-renders when changed
