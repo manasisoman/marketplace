@@ -1,0 +1,64 @@
+name: Sync Notion Docs on PR
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches: [main]
+
+jobs:
+  sync-docs:
+    runs-on: ubuntu-latest
+    # Skip PRs created by Devin to avoid recursive triggers
+    if: >-
+      !contains(github.event.pull_request.user.login, 'devin') &&
+      !contains(github.event.pull_request.head.ref, 'devin/')
+    steps:
+      - name: Trigger Devin session for doc sync
+        env:
+          DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
+          REPO="${{ github.repository }}"
+          HEAD_REF="${{ github.event.pull_request.head.ref }}"
+          BASE_REF="${{ github.event.pull_request.base.ref }}"
+
+          PROMPT=$(cat <<EOF
+          A pull request was just created/updated on ${REPO}:
+          - PR #${PR_NUMBER}: "${PR_TITLE}"
+          - Author: ${PR_AUTHOR}
+          - Branch: ${HEAD_REF} -> ${BASE_REF}
+
+          Your task:
+          1. View the PR diff using git_view_pr for ${REPO} PR #${PR_NUMBER}.
+          2. Follow the playbook at .devin/playbooks/sync-notion-docs.devin.md in the ${REPO} repository.
+          3. Classify the change type (behavioral, refactor, config, API, customer-specific, workaround).
+          4. If documentation updates are needed, invoke the skill at .agents/skills/sync-notion-docs/SKILL.md and update the Notion PRD, TDD, and API Reference documents.
+          5. Post a summary comment on the PR with what was updated (or why no update was needed).
+
+          Do NOT make any code changes. This is a documentation-only task.
+          EOF
+          )
+
+          echo "Triggering Devin session for PR #${PR_NUMBER}..."
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://api.devin.ai/v3/organizations/sessions" \
+            -H "Authorization: Bearer ${DEVIN_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg prompt "$PROMPT" '{prompt: $prompt}')")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            SESSION_ID=$(echo "$BODY" | jq -r '.session_id // .id // "unknown"')
+            SESSION_URL=$(echo "$BODY" | jq -r '.url // "unknown"')
+            echo "Devin session created successfully!"
+            echo "Session ID: ${SESSION_ID}"
+            echo "Session URL: ${SESSION_URL}"
+          else
+            echo "Failed to create Devin session (HTTP ${HTTP_CODE})"
+            echo "Response: ${BODY}"
+            exit 1
+          fi
