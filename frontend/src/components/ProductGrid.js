@@ -1,6 +1,6 @@
 import ProductCard from "./ProductCard";
 
-function ProductGrid({ products, loading, searchQuery, onAddToCart, onDelete, favorites, onFavorite, onUnfavorite }) {
+function ProductGrid({ products, loading, searchQuery, onAddToCart, onDelete, onViewProduct, favorites, onFavorite, onUnfavorite }) {
   if (loading) {
     return <div className="loading">Loading products...</div>;
   }
@@ -50,6 +50,7 @@ function ProductGrid({ products, loading, searchQuery, onAddToCart, onDelete, fa
               product={product}
               onAddToCart={onAddToCart}
               onDelete={onDelete}
+              onViewProduct={onViewProduct}
               favorites={favorites}
               onFavorite={onFavorite}
               onUnfavorite={onUnfavorite}

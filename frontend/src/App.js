@@ -4,6 +4,7 @@ import Navbar from "./components/Navbar";
 import ProductGrid from "./components/ProductGrid";
 import AddProductForm from "./components/AddProductForm";
 import Cart from "./components/Cart";
+import ProductDetail from "./components/ProductDetail";
 import "./App.css";
 
 const API = "";
@@ -17,6 +18,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [favorites, setFavorites] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   // Load products when app first opens
   useEffect(() => {
@@ -65,11 +67,34 @@ function App() {
     setView("home");
   };
 
+  // USES ENDPOINT 4: GET single product
+  const viewProduct = async (productId) => {
+    try {
+      const res = await axios.get(`${API}/products/${productId}`);
+      setSelectedProduct(res.data);
+      setView("detail");
+    } catch (err) {
+      console.error("Error fetching product:", err);
+    }
+  };
+
+  // USES ENDPOINT 6: UPDATE product
+  const editProduct = async (id, updatedData) => {
+    try {
+      const res = await axios.put(`${API}/products/${id}`, updatedData);
+      setSelectedProduct(res.data);
+      fetchProducts();
+    } catch (err) {
+      console.error("Error updating product:", err);
+    }
+  };
+
   // USES ENDPOINT 7: DELETE product
   const deleteProduct = async (id) => {
     try {
       await axios.delete(`${API}/products/${id}`);
       fetchProducts();
+      if (view === "detail") setView("home");
     } catch (err) {
       console.error("Error deleting product:", err);
     }
@@ -177,9 +202,19 @@ function App() {
             searchQuery={searchQuery}
             onAddToCart={addToCart}
             onDelete={deleteProduct}
+            onViewProduct={viewProduct}
             favorites={favorites}
             onFavorite={addFavorite}
             onUnfavorite={removeFavorite}
+          />
+        )}
+        {view === "detail" && selectedProduct && (
+          <ProductDetail
+            product={selectedProduct}
+            onAddToCart={addToCart}
+            onDelete={deleteProduct}
+            onEdit={editProduct}
+            onBack={() => setView("home")}
           />
         )}
         {view === "sell" && (
