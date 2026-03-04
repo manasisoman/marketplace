@@ -8,7 +8,9 @@ A full-stack B2B marketplace web application built with React, Node.js, Express,
 - Search products by name or description (live search)
 - List new products for sale
 - Add products to cart (with quantity tracking)
+- Update cart item quantities (+/−)
 - Remove items from cart with real-time total calculation
+- View product details with inline editing
 - Delete product listings
 - Favorite and unfavorite products (persisted in MongoDB)
 
@@ -20,7 +22,7 @@ A full-stack B2B marketplace web application built with React, Node.js, Express,
 | Backend | Node.js, Express |
 | Database | MongoDB Atlas (Mongoose) |
 
-## API Endpoints (13 total)
+## API Endpoints (14 total)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -33,6 +35,7 @@ A full-stack B2B marketplace web application built with React, Node.js, Express,
 | DELETE | `/products/:id` | Delete a product |
 | GET | `/cart` | Get cart items + total |
 | POST | `/cart` | Add item to cart |
+| PUT | `/cart/:id` | Update cart item quantity |
 | DELETE | `/cart/:id` | Remove cart item |
 | GET | `/favorites` | Get all favorites |
 | POST | `/favorites` | Add product to favorites |
