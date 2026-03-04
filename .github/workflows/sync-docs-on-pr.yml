@@ -14,12 +14,6 @@ jobs:
       github.event.pull_request.user.login != 'devin-ai-integration[bot]' &&
       !startsWith(github.event.pull_request.head.ref, 'devin/')
     steps:
-      - name: Checkout repo for config file
-        uses: actions/checkout@v4
-        with:
-          ref: main
-          sparse-checkout: .github/notion-docs.json
-          sparse-checkout-cone-mode: false
       - name: Trigger Devin session for doc sync
         env:
           DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
@@ -38,57 +32,86 @@ jobs:
           - Branch: HEAD_REF_PLACEHOLDER -> BASE_REF_PLACEHOLDER
 
           ## Your Task
-          Analyze the PR diff and determine whether the Notion documentation needs updating.
-          The list of Notion documents to check is defined in `.github/notion-docs.json` in this repo.
+          Analyze the merged PR and determine whether any Notion documentation needs updating.
+          You will dynamically discover relevant Notion docs and Slack context — nothing is hardcoded.
 
-          ## Step 1: Read the PR diff
-          Use git_view_pr for the repo and PR number above. Identify all changed files and summarize the nature of the changes.
+          ## Step 1: Read the PR diff and comments
+          Use git_view_pr for the repo and PR number above. Read:
+          - The full diff (all changed files)
+          - The PR description and any review comments
+          - Any linked issues or ticket references
+          Summarize the nature of the changes.
 
           ## Step 2: Classify the change
           Determine which category the PR falls into:
 
           | Change Type | Documentation Action |
           |-------------|---------------------|
-          | Behavioral changes (new features, changed API responses, new UI) | Full doc update across PRD, TDD, and API Reference |
-          | Refactors (renamed internals, no runtime impact) | Changelog entry only in API Reference. Do NOT update endpoints, schemas, or PRD |
-          | Configuration changes (env vars, CORS, ports) | Update TDD config sections only. No PRD unless user-facing |
-          | API changes (new/modified/removed endpoints, changed request/response) | Full API Reference update + TDD endpoint table + PRD if user-facing |
-          | Customer-specific overrides (feature flags, tenant logic) | TDD only with callout noting scope |
+          | Behavioral changes (new features, changed API responses, new UI) | Full doc update — search for and update all relevant docs (PRDs, technical specs, API references) |
+          | Refactors (renamed internals, no runtime impact) | Changelog entry only. Do NOT update feature docs, endpoints, or schemas |
+          | Configuration changes (env vars, CORS, ports) | Update technical/config docs only. No PRD unless user-facing |
+          | API changes (new/modified/removed endpoints, changed request/response) | Update API references + technical docs + PRD if user-facing |
+          | Customer-specific overrides (feature flags, tenant logic) | Technical docs only with callout noting scope |
           | Temporary workarounds (hotfixes, monkey-patches) | Changelog entry only |
 
           Do NOT hallucinate intent. If the purpose is unclear, post a comment on the PR:
           > "Intent unclear from PR context. Please clarify whether this change is user-facing and which documentation sections should be updated."
           Then stop.
 
-          ## Step 3: Read the Notion docs config
-          The repository contains a config file at `.github/notion-docs.json` that lists all Notion documents
-          to keep in sync. Read this file from the repo (REPO_PLACEHOLDER, main branch) to discover:
-          - Which documents exist (name, page_id)
-          - When each document should be updated (update_when)
-          - Which sections to update in each document (sections array)
+          ## Step 3: Gather Slack context
+          Search Slack for discussions related to this PR. Use keywords from:
+          - The PR title and branch name
+          - Any ticket/issue IDs referenced in the PR (e.g., PROJ-123, #42)
+          - Feature names or component names mentioned in the diff
 
-          For each document in the config whose `update_when` condition matches the change classification
-          from Step 2, update the relevant sections listed in that document's `sections` array.
+          Look for:
+          - Why the change was made (customer requests, bug reports, product decisions)
+          - Any additional context about expected behavior or scope
+          - Stakeholder discussions that clarify intent
 
-          ## Step 4: Update Notion documents (if needed)
-          Use the Notion MCP tools (notion-fetch, notion-update-page) to update the relevant documents.
+          This Slack context should enrich the documentation updates, especially for PRDs
+          where customer-facing rationale matters.
+
+          ## Step 4: Discover relevant Notion documents
+          Use the Notion MCP search tool (notion-search) to find all documentation pages
+          related to this repository and the changes in this PR. Search for:
+          - The project/product name (e.g., "marketplace", "ShopHub")
+          - Document types: "PRD", "technical design", "API reference", "TDD", "spec"
+          - Feature-specific terms from the PR diff
+
+          For each document found, use notion-fetch to read its current content and determine
+          whether it needs updating based on the change classification from Step 2.
+
+          ## Step 5: Update relevant Notion documents
+          For each Notion document that needs updating, use notion-update-page to make
+          targeted updates. Follow these rules:
+
+          ### What to update based on document type
+          - **PRDs / Product docs**: Add new features, update functional requirements,
+            include customer context gathered from Slack
+          - **Technical design docs**: Update architecture sections, data models,
+            file structure, component tables, endpoint summaries
+          - **API references**: Add/update endpoint documentation, data schemas,
+            error references, auth matrix, changelog entries
+          - **Any other relevant docs**: Update sections that are affected by the code changes
 
           ### Formatting rules
-          - Tables: always include fit-page-width="true" header-row="true" attributes
-          - Callout blocks: ::: callout {icon="..." color="..."}
-          - Use notion-fetch with parameter "id" (NOT "page_id") to read pages
+          - Fetch the Notion enhanced markdown spec (notion://docs/enhanced-markdown-spec) before writing
+          - Use notion-fetch with parameter "id" to read pages
           - Use notion-update-page with "page_id" parameter to write
-          - selection_with_ellipsis must uniquely identify location (~20+ chars start...end)
-          - If >200 lines, break into multiple smaller insertions
+          - selection_with_ellipsis must uniquely identify the target location (~20+ chars start...end)
+          - If an update exceeds 200 lines, break it into multiple smaller insertions
+          - Preserve the existing formatting style of each document
 
           ### Guardrails
-          1. Only modify relevant sections
-          2. Never rewrite the entire page
-          3. Never remove content unless explicitly deleted in code
-          4. Avoid duplication — fetch first, confirm content doesn't already exist
-          5. Preserve formatting and headers exactly
+          1. Only modify sections relevant to the code changes
+          2. Never rewrite an entire page — make targeted, surgical edits
+          3. Never remove existing content unless the corresponding code was deleted
+          4. Avoid duplication — fetch the page first, confirm the content doesn't already exist
+          5. Preserve all existing formatting, headers, and structure exactly
+          6. Match the tone and style of the existing document
 
-          ## Step 5: Post a summary comment on the PR
+          ## Step 6: Post a summary comment on the PR
           After completing (or determining no update is needed), post a comment on the PR:
 
           If docs were updated:
@@ -97,10 +120,14 @@ jobs:
 
           **Change classification**: [type]
 
-          **Documents updated**:
-          - [For each document in notion-docs.json: name + sections updated or "no change"]
+          **Slack context**: [brief summary of relevant Slack discussions found, or "none found"]
 
-          **Summary**: [brief description of what was added/changed]
+          **Documents updated**:
+          - [Document name]: [sections updated]
+          - [Document name]: [sections updated]
+          (list all documents that were updated)
+
+          **Summary**: [brief description of what was added/changed and why]
           ```
 
           If no update needed:
@@ -114,9 +141,10 @@ jobs:
 
           ## Forbidden Actions
           - Do NOT rewrite entire Notion pages
-          - Do NOT remove existing docs unless corresponding code was deleted
-          - Do NOT create new Notion pages — only update the ones listed in .github/notion-docs.json
+          - Do NOT remove existing documentation unless corresponding code was deleted
+          - Do NOT create new Notion pages — only update existing ones you discover via search
           - Do NOT make any code changes — this is documentation-only
+          - Do NOT guess or fabricate information — only document what is evidenced in the code and PR
           PROMPT_EOF
 
           # Substitute placeholders (all values come from env vars, not direct ${{ }} interpolation)
