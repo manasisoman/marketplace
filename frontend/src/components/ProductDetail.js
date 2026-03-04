@@ -105,7 +105,7 @@ function ProductDetail({ product, onAddToCart, onDelete, onEdit, onBack }) {
             >
               Delete
             </button>
-            <button className="btn btn-secondary" onClick={() => setEditing(!editing)}>
+            <button className="btn btn-secondary" onClick={() => { if (editing) { handleCancel(); } else { setEditing(true); } }}>
               {editing ? "Cancel Edit" : "Edit"}
             </button>
           </div>
