@@ -169,6 +169,9 @@ app.post("/cart", async (req, res) => {
 app.put("/cart/:id", async (req, res) => {
   try {
     const { quantity } = req.body;
+    if (quantity == null || typeof quantity !== 'number') {
+      return res.status(400).json({ error: "A numeric quantity is required" });
+    }
     if (quantity <= 0) {
       const item = await Cart.findByIdAndDelete(req.params.id);
       if (!item) return res.status(404).json({ error: "Cart item not found" });
