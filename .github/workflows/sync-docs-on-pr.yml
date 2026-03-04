@@ -16,13 +16,13 @@ jobs:
       - name: Trigger Devin session for doc sync
         env:
           DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          REPO: ${{ github.repository }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
-          PR_NUMBER="${{ github.event.pull_request.number }}"
-          PR_TITLE="${{ github.event.pull_request.title }}"
-          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
-          REPO="${{ github.repository }}"
-          HEAD_REF="${{ github.event.pull_request.head.ref }}"
-          BASE_REF="${{ github.event.pull_request.base.ref }}"
 
           PROMPT=$(cat <<'PROMPT_EOF'
           A pull request was just created/updated on REPO_PLACEHOLDER:
@@ -131,7 +131,7 @@ jobs:
           - Do NOT make any code changes — this is documentation-only
           PROMPT_EOF
 
-          # Substitute placeholders
+          # Substitute placeholders (all values come from env vars, not direct ${{ }} interpolation)
           PROMPT="${PROMPT//REPO_PLACEHOLDER/$REPO}"
           PROMPT="${PROMPT//PR_NUM_PLACEHOLDER/$PR_NUMBER}"
           PROMPT="${PROMPT//PR_TITLE_PLACEHOLDER/$PR_TITLE}"
