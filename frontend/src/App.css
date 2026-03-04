@@ -490,6 +490,50 @@ body {
   color: var(--primary);
 }
 
+/* ─── Cart Quantity Controls ──────────────────────────────────── */
+.qty-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+
+.qty-btn {
+  width: 28px;
+  height: 28px;
+  border: 1.5px solid var(--border);
+  border-radius: 50%;
+  background: var(--white);
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, border-color 0.2s;
+  padding: 0;
+  line-height: 1;
+}
+
+.qty-btn:hover {
+  background: var(--primary);
+  color: var(--white);
+  border-color: var(--primary);
+}
+
+.qty-btn:active {
+  transform: scale(0.93);
+}
+
+.qty-value {
+  min-width: 1.5rem;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
 /* ─── States ──────────────────────────────────────────────────── */
 .loading {
   text-align: center;
