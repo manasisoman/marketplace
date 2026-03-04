@@ -1,4 +1,4 @@
-function ProductCard({ product, onAddToCart, onDelete, favorites, onFavorite, onUnfavorite }) {
+function ProductCard({ product, onAddToCart, onDelete, onViewProduct, favorites, onFavorite, onUnfavorite }) {
   // Fallback image if no image URL is provided
   const imageUrl = product.image || `https://placehold.co/300x200/e8f0fe/4285f4?text=${encodeURIComponent(product.name)}`;
 
@@ -7,7 +7,7 @@ function ProductCard({ product, onAddToCart, onDelete, favorites, onFavorite, on
 
   return (
     <div className="product-card">
-      <div className="product-image-wrapper">
+      <div className="product-image-wrapper" onClick={() => onViewProduct(product._id)} style={{ cursor: "pointer" }}>
         <img
           src={imageUrl}
           alt={product.name}
@@ -23,7 +23,7 @@ function ProductCard({ product, onAddToCart, onDelete, favorites, onFavorite, on
       </div>
 
       <div className="product-info">
-        <h3 className="product-name">{product.name}</h3>
+        <h3 className="product-name" onClick={() => onViewProduct(product._id)} style={{ cursor: "pointer" }}>{product.name}</h3>
         <p className="product-description">{product.description || "No description provided."}</p>
         <div className="product-footer">
           <span className="product-price">${Number(product.price).toFixed(2)}</span>
