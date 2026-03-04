@@ -23,6 +23,7 @@ mongoose
 // Import models
 const Product = require("./models/Product");
 const Cart = require("./models/Cart");
+const Favorite = require("./models/Favorite");
 
 // ─────────────────────────────────────────────
 // ROOT
@@ -172,6 +173,47 @@ app.delete("/cart/:id", async (req, res) => {
     res.json({ message: "Item removed from cart" });
   } catch (err) {
     res.status(500).json({ error: "Failed to remove cart item" });
+  }
+});
+
+// ─────────────────────────────────────────────
+// FAVORITE ENDPOINTS
+// ─────────────────────────────────────────────
+
+// GET all favorites
+app.get("/favorites", async (req, res) => {
+  try {
+    const favs = await Favorite.find().sort({ createdAt: -1 });
+    res.json(favs);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch favorites" });
+  }
+});
+
+// POST: add a product to favorites
+app.post("/favorites", async (req, res) => {
+  try {
+    const { productId, name, price, image } = req.body;
+    if (!productId || !name || !price)
+      return res.status(400).json({ error: "productId, name, and price are required" });
+    const existing = await Favorite.findOne({ productId });
+    if (existing) return res.json(existing); // already favorited — idempotent
+    const fav = new Favorite({ productId, name, price, image });
+    await fav.save();
+    res.status(201).json(fav);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to add favorite" });
+  }
+});
+
+// DELETE: remove a product from favorites
+app.delete("/favorites/:id", async (req, res) => {
+  try {
+    const fav = await Favorite.findByIdAndDelete(req.params.id);
+    if (!fav) return res.status(404).json({ error: "Favorite not found" });
+    res.json({ message: "Favorite removed" });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to remove favorite" });
   }
 });
 

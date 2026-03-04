@@ -1,6 +1,9 @@
-function ProductCard({ product, onAddToCart, onDelete }) {
+function ProductCard({ product, onAddToCart, onDelete, favorites, onFavorite, onUnfavorite }) {
   // Fallback image if no image URL is provided
   const imageUrl = product.image || `https://placehold.co/300x200/e8f0fe/4285f4?text=${encodeURIComponent(product.name)}`;
+
+  const favEntry = favorites.find(f => f.productId === product._id);
+  const isFav = Boolean(favEntry);
 
   return (
     <div className="product-card">
@@ -40,6 +43,12 @@ function ProductCard({ product, onAddToCart, onDelete }) {
               }}
             >
               Delete
+            </button>
+            <button
+              className="btn"
+              onClick={() => isFav ? onUnfavorite(favEntry._id) : onFavorite(product)}
+            >
+              {isFav ? "\u2665 Unfavorite" : "\u2661 Favorite"}
             </button>
           </div>
         </div>

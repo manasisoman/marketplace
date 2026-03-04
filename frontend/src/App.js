@@ -16,11 +16,13 @@ function App() {
   const [view, setView] = useState("home"); // "home" | "sell" | "cart"
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
+  const [favorites, setFavorites] = useState([]);
 
   // Load products when app first opens
   useEffect(() => {
     fetchProducts();
     fetchCart();
+    fetchFavorites();
   }, []);
 
   // Re-run search whenever searchQuery changes
@@ -110,6 +112,39 @@ function App() {
     }
   };
 
+  // Favorites
+  const fetchFavorites = async () => {
+    try {
+      const res = await axios.get(`${API}/favorites`);
+      setFavorites(res.data);
+    } catch (err) {
+      console.error("Error fetching favorites:", err);
+    }
+  };
+
+  const addFavorite = async (product) => {
+    try {
+      await axios.post(`${API}/favorites`, {
+        productId: product._id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+      });
+      fetchFavorites();
+    } catch (err) {
+      console.error("Error adding favorite:", err);
+    }
+  };
+
+  const removeFavorite = async (favId) => {
+    try {
+      await axios.delete(`${API}/favorites/${favId}`);
+      fetchFavorites();
+    } catch (err) {
+      console.error("Error removing favorite:", err);
+    }
+  };
+
   return (
     <div className="app">
       <Navbar
@@ -128,6 +163,9 @@ function App() {
             searchQuery={searchQuery}
             onAddToCart={addToCart}
             onDelete={deleteProduct}
+            favorites={favorites}
+            onFavorite={addFavorite}
+            onUnfavorite={removeFavorite}
           />
         )}
         {view === "sell" && (
