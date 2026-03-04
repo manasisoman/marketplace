@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const CATEGORIES = ["General", "Electronics", "Clothing", "Books", "Home & Garden", "Sports", "Toys", "Food"];
+const CATEGORIES = ["General", "Electronics", "Clothing", "Books", "Home and Garden", "Sports", "Toys", "Food"];
 
 function AddProductForm({ onSubmit, onCancel }) {
   // Each field in the form has its own piece of state

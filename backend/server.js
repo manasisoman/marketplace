@@ -31,7 +31,7 @@ const Favorite = require("./models/Favorite");
 
 // ENDPOINT 1: Health check — tells you the API is alive
 app.get("/", (req, res) => {
-  res.json({ message: "Marketplace API is running", endpoints: 9 });
+  res.json({ message: "Marketplace API is running", endpoints: 12 });
 });
 
 // ─────────────────────────────────────────────

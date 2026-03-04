@@ -1,6 +1,6 @@
-# ShopHub — Marketplace App
+# TradeHub — B2B Marketplace App
 
-A full-stack marketplace web application built with React, Node.js, Express, and MongoDB.
+A full-stack B2B marketplace web application built with React, Node.js, Express, and MongoDB.
 
 ## Features
 
@@ -10,6 +10,7 @@ A full-stack marketplace web application built with React, Node.js, Express, and
 - Add products to cart (with quantity tracking)
 - Remove items from cart with real-time total calculation
 - Delete product listings
+- Favorite and unfavorite products (persisted in MongoDB)
 
 ## Tech Stack
 
@@ -19,7 +20,7 @@ A full-stack marketplace web application built with React, Node.js, Express, and
 | Backend | Node.js, Express |
 | Database | MongoDB Atlas (Mongoose) |
 
-## API Endpoints (10 total)
+## API Endpoints (13 total)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -33,6 +34,9 @@ A full-stack marketplace web application built with React, Node.js, Express, and
 | GET | `/cart` | Get cart items + total |
 | POST | `/cart` | Add item to cart |
 | DELETE | `/cart/:id` | Remove cart item |
+| GET | `/favorites` | Get all favorites |
+| POST | `/favorites` | Add product to favorites |
+| DELETE | `/favorites/:id` | Remove product from favorites |
 
 ## Running Locally
 
@@ -79,8 +83,10 @@ marketplace/
 ├── backend/
 │   ├── models/
 │   │   ├── Product.js      # Product schema
-│   │   └── Cart.js         # Cart schema
+│   │   ├── Cart.js         # Cart schema
+│   │   └── Favorite.js     # Favorite schema
 │   ├── server.js           # Express server + all API routes
+│   ├── seed.js             # Database seed script
 │   ├── .env.example        # Template for environment variables
 │   └── package.json
 ├── frontend/
@@ -90,6 +96,7 @@ marketplace/
 │   │   │   ├── ProductGrid.js
 │   │   │   ├── ProductCard.js
 │   │   │   ├── AddProductForm.js
+│   │   │   ├── ProductDetail.js
 │   │   │   └── Cart.js
 │   │   ├── App.js
 │   │   └── App.css
