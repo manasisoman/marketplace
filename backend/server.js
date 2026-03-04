@@ -164,7 +164,32 @@ app.post("/cart", async (req, res) => {
   }
 });
 
-// ENDPOINT 10: REMOVE an item from the cart
+// ENDPOINT 10: UPDATE cart item quantity
+// Example: PUT http://localhost:5000/cart/64abc123...  with { quantity: 3 }
+app.put("/cart/:id", async (req, res) => {
+  try {
+    const { quantity } = req.body;
+    if (quantity == null || typeof quantity !== 'number') {
+      return res.status(400).json({ error: "A numeric quantity is required" });
+    }
+    if (quantity <= 0) {
+      const item = await Cart.findByIdAndDelete(req.params.id);
+      if (!item) return res.status(404).json({ error: "Cart item not found" });
+      return res.json({ message: "Item removed from cart" });
+    }
+    const item = await Cart.findByIdAndUpdate(
+      req.params.id,
+      { quantity },
+      { new: true, runValidators: true }
+    );
+    if (!item) return res.status(404).json({ error: "Cart item not found" });
+    res.json(item);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update cart item" });
+  }
+});
+
+// ENDPOINT 11: REMOVE an item from the cart
 // Example: DELETE http://localhost:5000/cart/64abc123...
 app.delete("/cart/:id", async (req, res) => {
   try {

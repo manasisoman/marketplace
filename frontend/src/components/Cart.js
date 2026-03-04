@@ -1,4 +1,4 @@
-function Cart({ items, total, onRemove, onBack }) {
+function Cart({ items, total, onRemove, onUpdateQuantity, onBack }) {
   if (items.length === 0) {
     return (
       <div className="cart-container">
@@ -37,7 +37,23 @@ function Cart({ items, total, onRemove, onBack }) {
               />
               <div className="cart-item-info">
                 <h4>{item.name}</h4>
-                <p>Qty: {item.quantity}</p>
+                <div className="qty-controls">
+                  <button
+                    className="qty-btn"
+                    onClick={() => onUpdateQuantity(item._id, item.quantity - 1)}
+                    title={item.quantity === 1 ? "Remove item" : "Decrease quantity"}
+                  >
+                    −
+                  </button>
+                  <span className="qty-value">{item.quantity}</span>
+                  <button
+                    className="qty-btn"
+                    onClick={() => onUpdateQuantity(item._id, item.quantity + 1)}
+                    title="Increase quantity"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
               <div className="cart-item-price">
                 ${(item.price * item.quantity).toFixed(2)}

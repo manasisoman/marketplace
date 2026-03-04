@@ -102,7 +102,21 @@ function App() {
     }
   };
 
-  // USES ENDPOINT 10: REMOVE from cart
+  // USES ENDPOINT 10: UPDATE cart item quantity
+  const updateCartQuantity = async (itemId, newQuantity) => {
+    try {
+      if (newQuantity <= 0) {
+        await axios.delete(`${API}/cart/${itemId}`);
+      } else {
+        await axios.put(`${API}/cart/${itemId}`, { quantity: newQuantity });
+      }
+      fetchCart();
+    } catch (err) {
+      console.error("Error updating cart quantity:", err);
+    }
+  };
+
+  // USES ENDPOINT 11: REMOVE from cart
   const removeFromCart = async (itemId) => {
     try {
       await axios.delete(`${API}/cart/${itemId}`);
@@ -176,6 +190,7 @@ function App() {
             items={cartItems}
             total={cartTotal}
             onRemove={removeFromCart}
+            onUpdateQuantity={updateCartQuantity}
             onBack={() => setView("home")}
           />
         )}
