@@ -1,15 +1,16 @@
-name: Sync Notion Docs on PR
+name: Sync Notion Docs on PR Merge
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [closed]
     branches: [main]
 
 jobs:
   sync-docs:
     runs-on: ubuntu-latest
-    # Skip PRs created by Devin to avoid recursive triggers
+    # Only run on actual merges, and skip PRs created by Devin to avoid recursive triggers
     if: >-
+      github.event.pull_request.merged == true &&
       github.event.pull_request.user.login != 'devin-ai-integration[bot]' &&
       !startsWith(github.event.pull_request.head.ref, 'devin/')
     steps:
@@ -25,7 +26,7 @@ jobs:
         run: |
 
           PROMPT=$(cat <<'PROMPT_EOF'
-          A pull request was just created/updated on REPO_PLACEHOLDER:
+          A pull request was just merged into main on REPO_PLACEHOLDER:
           - PR #PR_NUM_PLACEHOLDER: "PR_TITLE_PLACEHOLDER"
           - Author: PR_AUTHOR_PLACEHOLDER
           - Branch: HEAD_REF_PLACEHOLDER -> BASE_REF_PLACEHOLDER
