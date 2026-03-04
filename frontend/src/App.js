@@ -80,13 +80,9 @@ function App() {
 
   // USES ENDPOINT 6: UPDATE product
   const editProduct = async (id, updatedData) => {
-    try {
-      const res = await axios.put(`${API}/products/${id}`, updatedData);
-      setSelectedProduct(res.data);
-      fetchProducts();
-    } catch (err) {
-      console.error("Error updating product:", err);
-    }
+    const res = await axios.put(`${API}/products/${id}`, updatedData);
+    setSelectedProduct(res.data);
+    fetchProducts();
   };
 
   // USES ENDPOINT 7: DELETE product
