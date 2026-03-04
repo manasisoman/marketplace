@@ -1,0 +1,39 @@
+{
+  "description": "Notion documents to keep in sync with code changes. Add new entries here when you create new Notion docs that should be auto-updated on PR merges.",
+  "documents": [
+    {
+      "name": "PRD",
+      "page_id": "3186fa5c-56dd-81dd-a635-e260a96cacce",
+      "update_when": "User-facing behavioral or API changes",
+      "sections": [
+        "Section 7 'Current MVP Features': Add new subsection (## 7.N Feature Name) with bullet list",
+        "Section 9 'Functional Requirements': Add new FR-NNN row to the table"
+      ]
+    },
+    {
+      "name": "TDD",
+      "page_id": "3186fa5c-56dd-8163-a94c-c1bee679b99f",
+      "update_when": "Behavioral, API, or configuration changes",
+      "sections": [
+        "Section 6.1 'Frontend Architecture': Update component table rows if props changed",
+        "Section 6.2 'Backend File Structure': Add new files to directory tree",
+        "Section 7 'Data Models': Add new model schema subsection (renumber if needed)",
+        "Section 8.1 'Endpoint Summary': Add endpoint rows to table",
+        "Architecture diagram: Add new collections to mermaid diagram"
+      ]
+    },
+    {
+      "name": "API Reference",
+      "page_id": "3186fa5c-56dd-812c-8b55-d288fc6af4d0",
+      "update_when": "Behavioral or API changes",
+      "sections": [
+        "Section 5 'Endpoints': Add full endpoint docs (description, auth, request/response, cURL, status codes)",
+        "Section 6 'Data Schemas': Add object schema table",
+        "Section 7 'Error Reference': Add error message rows + update 404 description",
+        "Section 4 'Auth Matrix': Add endpoint auth rows",
+        "Update overview text and endpoint count",
+        "Section 10 'Changelog': Add version entry"
+      ]
+    }
+  ]
+}

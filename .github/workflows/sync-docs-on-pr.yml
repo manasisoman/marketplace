@@ -14,6 +14,12 @@ jobs:
       github.event.pull_request.user.login != 'devin-ai-integration[bot]' &&
       !startsWith(github.event.pull_request.head.ref, 'devin/')
     steps:
+      - name: Checkout repo for config file
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          sparse-checkout: .github/notion-docs.json
+          sparse-checkout-cone-mode: false
       - name: Trigger Devin session for doc sync
         env:
           DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
@@ -32,7 +38,8 @@ jobs:
           - Branch: HEAD_REF_PLACEHOLDER -> BASE_REF_PLACEHOLDER
 
           ## Your Task
-          Analyze the PR diff and determine whether the Notion documentation (PRD, TDD, API Reference) needs updating.
+          Analyze the PR diff and determine whether the Notion documentation needs updating.
+          The list of Notion documents to check is defined in `.github/notion-docs.json` in this repo.
 
           ## Step 1: Read the PR diff
           Use git_view_pr for the repo and PR number above. Identify all changed files and summarize the nature of the changes.
@@ -53,36 +60,18 @@ jobs:
           > "Intent unclear from PR context. Please clarify whether this change is user-facing and which documentation sections should be updated."
           Then stop.
 
-          ## Step 3: Update Notion documents (if needed)
+          ## Step 3: Read the Notion docs config
+          The repository contains a config file at `.github/notion-docs.json` that lists all Notion documents
+          to keep in sync. Read this file from the repo (REPO_PLACEHOLDER, main branch) to discover:
+          - Which documents exist (name, page_id)
+          - When each document should be updated (update_when)
+          - Which sections to update in each document (sections array)
+
+          For each document in the config whose `update_when` condition matches the change classification
+          from Step 2, update the relevant sections listed in that document's `sections` array.
+
+          ## Step 4: Update Notion documents (if needed)
           Use the Notion MCP tools (notion-fetch, notion-update-page) to update the relevant documents.
-
-          ### Notion Document IDs
-          | Document | Page ID |
-          |----------|---------|
-          | PRD | 3186fa5c-56dd-81dd-a635-e260a96cacce |
-          | TDD | 3186fa5c-56dd-8163-a94c-c1bee679b99f |
-          | API Reference | 3186fa5c-56dd-812c-8b55-d288fc6af4d0 |
-
-          ### Where to update in each document
-
-          **PRD** (only if user-facing behavioral/API change):
-          - Section 7 "Current MVP Features": Add new subsection (## 7.N Feature Name) with bullet list
-          - Section 9 "Functional Requirements": Add new FR-NNN row to the table
-
-          **TDD** (behavioral, API, or config changes):
-          - Section 6.1 "Frontend Architecture": Update component table rows if props changed
-          - Section 6.2 "Backend File Structure": Add new files to directory tree
-          - Section 7 "Data Models": Add new model schema subsection (renumber if needed)
-          - Section 8.1 "Endpoint Summary": Add endpoint rows to table
-          - Architecture diagram: Add new collections to mermaid diagram
-
-          **API Reference** (behavioral or API changes):
-          - Section 5 "Endpoints": Add full endpoint docs (description, auth, request/response, cURL, status codes)
-          - Section 6 "Data Schemas": Add object schema table
-          - Section 7 "Error Reference": Add error message rows + update 404 description
-          - Section 4 "Auth Matrix": Add endpoint auth rows
-          - Update overview text and endpoint count
-          - Section 10 "Changelog": Add version entry
 
           ### Formatting rules
           - Tables: always include fit-page-width="true" header-row="true" attributes
@@ -99,7 +88,7 @@ jobs:
           4. Avoid duplication — fetch first, confirm content doesn't already exist
           5. Preserve formatting and headers exactly
 
-          ## Step 4: Post a summary comment on the PR
+          ## Step 5: Post a summary comment on the PR
           After completing (or determining no update is needed), post a comment on the PR:
 
           If docs were updated:
@@ -109,9 +98,7 @@ jobs:
           **Change classification**: [type]
 
           **Documents updated**:
-          - PRD: [sections updated or "no change"]
-          - TDD: [sections updated or "no change"]
-          - API Reference: [sections updated or "no change"]
+          - [For each document in notion-docs.json: name + sections updated or "no change"]
 
           **Summary**: [brief description of what was added/changed]
           ```
@@ -128,7 +115,7 @@ jobs:
           ## Forbidden Actions
           - Do NOT rewrite entire Notion pages
           - Do NOT remove existing docs unless corresponding code was deleted
-          - Do NOT create new Notion pages — only update the three existing ones
+          - Do NOT create new Notion pages — only update the ones listed in .github/notion-docs.json
           - Do NOT make any code changes — this is documentation-only
           PROMPT_EOF
 
