@@ -16,17 +16,21 @@ jobs:
       - name: Trigger Devin for Phase 1 Classification
         env:
           DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
         run: |
-          PROMPT=$(cat <<'PROMPT_EOF'
+          PROMPT=$(cat <<PROMPT_EOF
           ## Phase 1: Real-Time PR Classification
 
           A PR has been merged to main. Your task is to classify the changes and
           propose documentation updates.
 
           **PR Details:**
-          - PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}
-          - Author: ${{ github.event.pull_request.user.login }}
-          - Merge commit: ${{ github.event.pull_request.merge_commit_sha }}
+          - PR #${PR_NUMBER}: ${PR_TITLE}
+          - Author: ${PR_AUTHOR}
+          - Merge commit: ${MERGE_SHA}
 
           **Instructions:**
           1. Read the PR diff to understand what changed
@@ -44,8 +48,8 @@ jobs:
              - If recommending a new page, include the rationale
 
           **Skills to reference:**
-          - `.agents/skills/notion-doc-sync/SKILL.md` — for Notion page creation policy
-          - `.agents/skills/app-architecture/SKILL.md` — for how to derive architecture
+          - .agents/skills/notion-doc-sync/SKILL.md — for Notion page creation policy
+          - .agents/skills/app-architecture/SKILL.md — for how to derive architecture
           PROMPT_EOF
           )
 
@@ -57,7 +61,7 @@ jobs:
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
           BODY=$(echo "$RESPONSE" | sed '$d')
 
-          if [ "$HTTP_CODE" -ge 400 ]; then
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 400 ]; then
             echo "Error triggering Devin session: HTTP $HTTP_CODE"
             echo "$BODY"
             exit 1

@@ -19,15 +19,17 @@ jobs:
       - name: Trigger Devin for Phase 2 Apply
         env:
           DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
         run: |
-          PROMPT=$(cat <<'PROMPT_EOF'
+          PROMPT=$(cat <<PROMPT_EOF
           ## Phase 2: Apply Approved Documentation Changes
 
           A reviewer has approved the proposed documentation changes.
           Your task is to apply these changes to Notion.
 
-          **Issue:** #${{ github.event.issue.number }}
-          **Approved by:** ${{ github.event.comment.user.login }}
+          **Issue:** #${ISSUE_NUMBER}
+          **Approved by:** ${COMMENT_AUTHOR}
 
           **Instructions:**
           1. Read the GitHub Issue body to understand the approved documentation changes
@@ -44,9 +46,9 @@ jobs:
              - Summary of changes applied
 
           **Skills to reference:**
-          - `.agents/skills/notion-doc-sync/SKILL.md` — for Notion page creation policy and sync process
-          - `.agents/skills/doc-standards/SKILL.md` — for documentation formatting standards
-          - `.agents/skills/app-architecture/SKILL.md` — for architecture derivation if needed
+          - .agents/skills/notion-doc-sync/SKILL.md — for Notion page creation policy and sync process
+          - .agents/skills/doc-standards/SKILL.md — for documentation formatting standards
+          - .agents/skills/app-architecture/SKILL.md — for architecture derivation if needed
           PROMPT_EOF
           )
 
@@ -58,7 +60,7 @@ jobs:
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
           BODY=$(echo "$RESPONSE" | sed '$d')
 
-          if [ "$HTTP_CODE" -ge 400 ]; then
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 400 ]; then
             echo "Error triggering Devin session: HTTP $HTTP_CODE"
             echo "$BODY"
             exit 1
