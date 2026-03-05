@@ -1,13 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 
 const API = "";
 
-function CouponInput({ cartTotal, cartItems, currentUserId, onCouponApplied }) {
+function CouponInput({ cartTotal, cartItems, currentUserId, onCouponApplied, appliedCoupon: appliedCouponProp }) {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
+
+  // Sync internal state when parent resets the coupon (e.g., cart items changed)
+  useEffect(() => {
+    if (appliedCouponProp === null && appliedCoupon !== null) {
+      setAppliedCoupon(null);
+      setCode("");
+      setError("");
+    }
+  }, [appliedCouponProp]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleValidate = async () => {
     if (!code.trim()) {

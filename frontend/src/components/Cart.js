@@ -1,9 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CouponInput from "./CouponInput";
 
 function Cart({ items, total, onRemove, onUpdateQuantity, onBack, currentUserId }) {
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const finalTotal = appliedCoupon ? appliedCoupon.newTotal : total;
+
+  // Reset coupon when cart contents change (items added/removed/quantity changed)
+  useEffect(() => {
+    if (appliedCoupon) {
+      setAppliedCoupon(null);
+    }
+  }, [total]); // eslint-disable-line react-hooks/exhaustive-deps
   if (items.length === 0) {
     return (
       <div className="cart-container">
@@ -87,6 +94,7 @@ function Cart({ items, total, onRemove, onUpdateQuantity, onBack, currentUserId 
           }))}
           currentUserId={currentUserId}
           onCouponApplied={setAppliedCoupon}
+          appliedCoupon={appliedCoupon}
         />
       </div>
 
