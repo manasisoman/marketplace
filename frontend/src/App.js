@@ -6,6 +6,7 @@ import AddProductForm from "./components/AddProductForm";
 import Cart from "./components/Cart";
 import ProductDetail from "./components/ProductDetail";
 import SearchFilters from "./components/SearchFilters";
+import Messages from "./pages/Messages";
 import "./App.css";
 
 const API = "";
@@ -15,7 +16,7 @@ function App() {
   const [products, setProducts] = useState([]);
   const [cartItems, setCartItems] = useState([]);
   const [cartTotal, setCartTotal] = useState(0);
-  const [view, setView] = useState("home"); // "home" | "sell" | "cart"
+  const [view, setView] = useState("home"); // "home" | "sell" | "cart" | "messages"
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [favorites, setFavorites] = useState([]);
@@ -247,6 +248,9 @@ function App() {
             onUpdateQuantity={updateCartQuantity}
             onBack={() => setView("home")}
           />
+        )}
+        {view === "messages" && (
+          <Messages currentUserId={null} />
         )}
       </main>
     </div>
