@@ -62,7 +62,7 @@ app.get("/products", async (req, res) => {
     // Build filter — optionally filter by category (case-insensitive)
     const filter = {};
     if (req.query.category) {
-      filter.category = { $regex: new RegExp(`^${req.query.category}$`, "i") };
+      filter.category = { $regex: new RegExp(`^${req.query.category.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, "i") };
     }
 
     const total = await Product.countDocuments(filter);
