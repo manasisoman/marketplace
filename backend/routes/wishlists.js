@@ -93,7 +93,10 @@ router.put("/:id", auth, async (req, res) => {
     }
 
     const { name, description, isPublic, tags } = req.body;
-    if (name) wishlist.name = name.trim();
+    if (name !== undefined) {
+      if (!name.trim()) return res.status(400).json({ error: "Wishlist name cannot be empty" });
+      wishlist.name = name.trim();
+    }
     if (description !== undefined) wishlist.description = description;
     if (tags !== undefined) wishlist.tags = tags;
 
