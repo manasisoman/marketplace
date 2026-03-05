@@ -118,21 +118,23 @@ router.delete("/:id", auth, async (req, res) => {
     if (!wishlist) {
       return res.status(404).json({ error: "Wishlist not found" });
     }
-    // Clean up price alerts only for products not in other wishlists with alerts
-    const productIds = wishlist.items.map((item) => item.productId);
-    const otherWishlists = await Wishlist.find({
-      userId: req.user._id,
-      _id: { $ne: wishlist._id },
-      "items.productId": { $in: productIds },
-    });
-    const protectedProductIds = new Set(
-      otherWishlists.flatMap((wl) =>
-        wl.items.filter((i) => i.alertOnPriceDrop).map((i) => i.productId.toString())
-      )
-    );
-    const productIdsToDelete = productIds.filter((id) => !protectedProductIds.has(id.toString()));
-    if (productIdsToDelete.length > 0) {
-      await PriceAlert.deleteMany({ userId: req.user._id, productId: { $in: productIdsToDelete } });
+    // Clean up price alerts only for products that had alertOnPriceDrop enabled in this wishlist
+    const productIds = wishlist.items.filter((item) => item.alertOnPriceDrop).map((item) => item.productId);
+    if (productIds.length > 0) {
+      const otherWishlists = await Wishlist.find({
+        userId: req.user._id,
+        _id: { $ne: wishlist._id },
+        "items.productId": { $in: productIds },
+      });
+      const protectedProductIds = new Set(
+        otherWishlists.flatMap((wl) =>
+          wl.items.filter((i) => i.alertOnPriceDrop).map((i) => i.productId.toString())
+        )
+      );
+      const productIdsToDelete = productIds.filter((id) => !protectedProductIds.has(id.toString()));
+      if (productIdsToDelete.length > 0) {
+        await PriceAlert.deleteMany({ userId: req.user._id, productId: { $in: productIdsToDelete } });
+      }
     }
 
     res.json({ message: "Wishlist deleted successfully" });
@@ -227,12 +229,14 @@ router.put("/:id/items/:productId", auth, async (req, res) => {
     await wishlist.save();
 
     // Update price alert using item's resolved state (not raw req.body)
+    // Scope alert to the wishlist owner (who the alert belongs to), not the collaborator making the change
+    const alertOwnerId = wishlist.userId;
     if (item.alertOnPriceDrop && item.targetPrice != null) {
       const product = await Product.findById(req.params.productId);
       await PriceAlert.findOneAndUpdate(
-        { userId: req.user._id, productId: req.params.productId, isActive: true },
+        { userId: alertOwnerId, productId: req.params.productId, isActive: true },
         {
-          userId: req.user._id,
+          userId: alertOwnerId,
           productId: req.params.productId,
           targetPrice: item.targetPrice,
           originalPrice: product ? product.price : 0,
@@ -242,7 +246,7 @@ router.put("/:id/items/:productId", auth, async (req, res) => {
       );
     } else if (item.alertOnPriceDrop === false) {
       await PriceAlert.updateMany(
-        { userId: req.user._id, productId: req.params.productId },
+        { userId: alertOwnerId, productId: req.params.productId },
         { isActive: false }
       );
     }
@@ -274,17 +278,24 @@ router.delete("/:id/items/:productId", auth, async (req, res) => {
     wishlist.items.splice(itemIndex, 1);
     await wishlist.save();
 
-    // Deactivate price alerts for this product scoped to the requesting user
-    const userHasAlertElsewhere = await Wishlist.findOne({
-      userId: req.user._id,
-      _id: { $ne: req.params.id },
-      items: { $elemMatch: { productId: req.params.productId, alertOnPriceDrop: true } },
-    });
-    if (!userHasAlertElsewhere) {
-      await PriceAlert.updateMany(
-        { userId: req.user._id, productId: req.params.productId },
-        { isActive: false }
-      );
+    // Deactivate price alerts for this product for both the requesting user and the wishlist owner
+    // This handles the case where a collaborator removes an item that the owner added with alerts
+    const usersToCheck = [req.user._id.toString()];
+    if (wishlist.userId.toString() !== req.user._id.toString()) {
+      usersToCheck.push(wishlist.userId.toString());
+    }
+    for (const uid of usersToCheck) {
+      const userHasAlertElsewhere = await Wishlist.findOne({
+        userId: uid,
+        _id: { $ne: req.params.id },
+        items: { $elemMatch: { productId: req.params.productId, alertOnPriceDrop: true } },
+      });
+      if (!userHasAlertElsewhere) {
+        await PriceAlert.updateMany(
+          { userId: uid, productId: req.params.productId },
+          { isActive: false }
+        );
+      }
     }
 
     res.json(wishlist);
