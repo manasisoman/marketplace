@@ -17,7 +17,7 @@ router.post("/", auth, async (req, res) => {
     if (!conversation) {
       return res.status(404).json({ error: "Conversation not found" });
     }
-    if (!conversation.participants.includes(req.user._id.toString())) {
+    if (!conversation.participants.some((p) => p.toString() === req.user._id.toString())) {
       return res.status(403).json({ error: "Not a participant in this conversation" });
     }
 
@@ -46,7 +46,7 @@ router.get("/:conversationId", auth, async (req, res) => {
     if (!conversation) {
       return res.status(404).json({ error: "Conversation not found" });
     }
-    if (!conversation.participants.includes(req.user._id.toString())) {
+    if (!conversation.participants.some((p) => p.toString() === req.user._id.toString())) {
       return res.status(403).json({ error: "Not a participant in this conversation" });
     }
 
