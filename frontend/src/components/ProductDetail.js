@@ -1,4 +1,7 @@
 import { useState } from "react";
+import StarRating from "./StarRating";
+import ReviewList from "./ReviewList";
+import ReviewForm from "./ReviewForm";
 
 const CATEGORIES = ["General", "Electronics", "Clothing", "Books", "Home & Garden", "Sports", "Toys", "Food"];
 
@@ -72,6 +75,15 @@ function ProductDetail({ product, onAddToCart, onDelete, onEdit, onBack }) {
           )}
 
           <h1>{product.name}</h1>
+
+          {product.reviewCount > 0 && (
+            <div className="product-rating-summary">
+              <StarRating rating={product.averageRating} size="medium" />
+              <span className="rating-text">
+                {product.averageRating.toFixed(1)} ({product.reviewCount} review{product.reviewCount !== 1 ? "s" : ""})
+              </span>
+            </div>
+          )}
 
           <div className="product-detail-price">
             ${Number(product.price).toFixed(2)}
@@ -181,6 +193,16 @@ function ProductDetail({ product, onAddToCart, onDelete, onEdit, onBack }) {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Reviews section */}
+      <div className="product-reviews-section">
+        <ReviewForm
+          productId={product._id}
+          currentUserId={null}
+          onReviewSubmitted={() => {}}
+        />
+        <ReviewList productId={product._id} currentUserId={null} />
       </div>
     </div>
   );

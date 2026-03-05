@@ -1,3 +1,5 @@
+import StarRating from "./StarRating";
+
 const MAX_DESCRIPTION_LENGTH = 100;
 
 function ProductCard({ product, onAddToCart, onDelete, onViewProduct, favorites, onFavorite, onUnfavorite }) {
@@ -32,6 +34,12 @@ function ProductCard({ product, onAddToCart, onDelete, onViewProduct, favorites,
 
       <div className="product-info">
         <h3 className="product-name" onClick={() => onViewProduct(product._id)} style={{ cursor: "pointer" }}>{product.name}</h3>
+        {product.reviewCount > 0 && (
+          <div className="product-card-rating">
+            <StarRating rating={product.averageRating} size="small" />
+            <span className="rating-count">({product.reviewCount})</span>
+          </div>
+        )}
         <p className="product-description">{truncatedDescription}</p>
         <div className="product-footer">
           <span className="product-price">${Number(product.price).toFixed(2)}</span>
