@@ -8,6 +8,8 @@ import ProductDetail from "./components/ProductDetail";
 import SellerDashboard from "./pages/SellerDashboard";
 import SearchFilters from "./components/SearchFilters";
 import Messages from "./pages/Messages";
+import CouponManager from "./pages/CouponManager";
+import CouponInput from "./components/CouponInput";
 import "./App.css";
 
 const API = "";
@@ -17,7 +19,8 @@ function App() {
   const [products, setProducts] = useState([]);
   const [cartItems, setCartItems] = useState([]);
   const [cartTotal, setCartTotal] = useState(0);
-  const [view, setView] = useState("home"); // "home" | "sell" | "cart" | "analytics" | "messages"
+  const [view, setView] = useState("home"); // "home" | "sell" | "cart" | "analytics" | "messages" | "coupons"
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [favorites, setFavorites] = useState([]);
@@ -255,6 +258,9 @@ function App() {
         )}
         {view === "messages" && (
           <Messages currentUserId={null} />
+        )}
+        {view === "coupons" && (
+          <CouponManager currentUserId={null} />
         )}
       </main>
     </div>
