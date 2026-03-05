@@ -9,7 +9,7 @@ const app = express();
 const corsOptions = {
   origin: "http://localhost:3000",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type"],
+  allowedHeaders: ["Content-Type", "x-user-id"],
 };
 app.use(cors(corsOptions));
 app.use(express.json());
@@ -24,6 +24,13 @@ mongoose
 const Product = require("./models/Product");
 const Cart = require("./models/Cart");
 const Favorite = require("./models/Favorite");
+const ProductView = require("./models/ProductView");
+
+// Import route files
+const analyticsRouter = require("./routes/analytics");
+
+// Register route files
+app.use("/api/analytics", analyticsRouter);
 
 // ─────────────────────────────────────────────
 // ROOT
@@ -105,10 +112,20 @@ app.get("/products/search", async (req, res) => {
 
 // ENDPOINT 4: GET a single product by its ID
 // Example: GET http://localhost:5000/products/64abc123...
+// Also tracks product views for analytics (fire-and-forget)
 app.get("/products/:id", async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ error: "Product not found" });
+
+    // Track product view (fire-and-forget — don't block the response)
+    ProductView.create({
+      productId: product._id,
+      userId: req.headers["x-user-id"] || null,
+      sessionId: req.headers["x-session-id"] || null,
+      referrer: req.headers.referer || null,
+    }).catch(() => {}); // silently ignore tracking errors
+
     res.json(product);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch product" });
