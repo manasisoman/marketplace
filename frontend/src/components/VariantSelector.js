@@ -114,7 +114,7 @@ function StockBadge({ totalStock, lowStockCount }) {
     return <span className="stock-badge out-of-stock-badge">Out of Stock</span>;
   }
   if (lowStockCount > 0) {
-    return <span className="stock-badge low-stock-badge">Low Stock — Only {totalStock} left</span>;
+    return <span className="stock-badge low-stock-badge">Low Stock — {lowStockCount} variant{lowStockCount !== 1 ? "s" : ""} running low</span>;
   }
   return <span className="stock-badge in-stock-badge">In Stock ({totalStock} available)</span>;
 }

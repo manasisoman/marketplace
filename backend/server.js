@@ -228,11 +228,11 @@ app.post("/products", async (req, res) => {
 // Example: PUT http://localhost:5000/products/64abc123...  with updated JSON body
 app.put("/products/:id", async (req, res) => {
   try {
-    // Only allow updating user-editable fields (not server-managed fields like averageRating, reviewCount)
-    const { name, price, description, image, category } = req.body;
+    // Only allow updating user-editable fields (not server-managed fields like averageRating, reviewCount, hasVariants, variantCount, totalStock, availableSizes, availableColors)
+    const { name, price, description, image, category, brand, tags, weightUnit } = req.body;
     const product = await Product.findByIdAndUpdate(
       req.params.id,
-      { name, price, description, image, category },
+      { name, price, description, image, category, brand, tags, weightUnit },
       { new: true, runValidators: true } // return the updated doc
     );
     if (!product) return res.status(404).json({ error: "Product not found" });
