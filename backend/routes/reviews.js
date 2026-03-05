@@ -113,32 +113,51 @@ router.get("/products/:id/reviews", async (req, res) => {
 });
 
 // PUT /api/reviews/:id/helpful — toggle helpful vote (requires auth)
+// Uses atomic MongoDB operations to prevent race conditions under concurrent votes
 router.put("/reviews/:id/helpful", auth, async (req, res) => {
   try {
-    const review = await Review.findById(req.params.id);
-    if (!review) {
-      return res.status(404).json({ error: "Review not found" });
-    }
+    const userId = req.user._id;
 
-    const userIdStr = req.user._id.toString();
-    const alreadyVoted = review.helpfulVoters.some(
-      (voter) => voter.toString() === userIdStr
-    );
+    // Check if user already voted (atomic check)
+    const existingVote = await Review.findOne({
+      _id: req.params.id,
+      helpfulVoters: userId,
+    });
 
-    if (alreadyVoted) {
-      // Remove vote
-      review.helpfulVoters = review.helpfulVoters.filter(
-        (voter) => voter.toString() !== userIdStr
+    if (existingVote) {
+      // Atomically remove vote
+      const updated = await Review.findByIdAndUpdate(
+        req.params.id,
+        {
+          $pull: { helpfulVoters: userId },
+          $inc: { helpful: -1 },
+        },
+        { new: true }
       );
-      review.helpful = Math.max(0, review.helpful - 1);
+      if (!updated) {
+        return res.status(404).json({ error: "Review not found" });
+      }
+      // Ensure helpful count doesn't go below 0
+      if (updated.helpful < 0) {
+        await Review.findByIdAndUpdate(req.params.id, { helpful: 0 });
+        return res.json({ helpful: 0, voted: false });
+      }
+      res.json({ helpful: updated.helpful, voted: false });
     } else {
-      // Add vote
-      review.helpfulVoters.push(req.user._id);
-      review.helpful += 1;
+      // Atomically add vote
+      const updated = await Review.findByIdAndUpdate(
+        req.params.id,
+        {
+          $addToSet: { helpfulVoters: userId },
+          $inc: { helpful: 1 },
+        },
+        { new: true }
+      );
+      if (!updated) {
+        return res.status(404).json({ error: "Review not found" });
+      }
+      res.json({ helpful: updated.helpful, voted: true });
     }
-
-    await review.save();
-    res.json({ helpful: review.helpful, voted: !alreadyVoted });
   } catch (err) {
     res.status(500).json({ error: "Failed to toggle helpful vote" });
   }
