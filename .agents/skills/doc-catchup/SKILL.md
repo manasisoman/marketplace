@@ -1,22 +1,40 @@
 # Doc Catchup Skill
 
-This skill governs how Devin performs a one-time, full documentation catch-up for a
-repository whose code has gotten ahead of its Notion documentation. Use this when
-onboarding a repository or when a significant documentation gap has accumulated.
+This skill governs how Devin performs a **one-time, full documentation catch-up** for
+a repository whose code has gotten ahead of its Notion documentation. It is designed
+for **initial onboarding or major resets only** — not for recurring use.
+
+> **Why not run this every week?** Step 1 re-derives the entire application
+> architecture from scratch, which is expensive and redundant if documentation is
+> being maintained incrementally. Once the initial catchup is complete, the
+> `weekly-doc-batch` skill handles ongoing maintenance by processing individual
+> merged PRs — no full audit needed.
 
 ## When to Use This Skill
 
-- A repository is being onboarded and has features with no corresponding Notion docs
-- A team has shipped multiple releases without updating documentation
-- A reviewer wants a complete audit of code vs. docs coverage
+- **First-time onboarding:** A repository has features with no corresponding Notion docs
+- **Major reset:** A team has shipped many releases without updating documentation
+  and the gap is too large for the weekly batch to handle incrementally
+- **Coverage audit:** A reviewer wants a complete audit of code vs. docs coverage
 
-This skill is NOT for ongoing maintenance — use the `notion-doc-sync` and
-`weekly-doc-batch` skills for that. This is a one-time bulk operation.
+## When NOT to Use This Skill
 
-## Step 1: Full Codebase Audit
+- **Ongoing weekly/monthly maintenance** — use `weekly-doc-batch` instead, which
+  processes individual PRs without re-deriving the full architecture
+- **Single-feature doc updates** — use `notion-doc-sync` instead
+- **If documentation is already mostly current** — the full codebase audit (Step 1)
+  is unnecessary overhead when only a few PRs are undocumented
+
+## Step 1: Full Codebase Audit (one-time only)
 
 Perform a **complete** architecture derivation using the `app-architecture` skill
-(`.agents/skills/app-architecture/SKILL.md`). Run all five steps:
+(`.agents/skills/app-architecture/SKILL.md`). Run all five steps.
+
+> **Note:** This is the most expensive step and the primary reason this skill is
+> not suited for recurring use. After the initial catchup, the `weekly-doc-batch`
+> skill skips this step entirely and works directly from merged PR diffs.
+
+Run all five steps:
 
 1. **Tech stack identification** — Read all `package.json` files, identify frameworks,
    database, and frontend stack
@@ -126,12 +144,52 @@ For each non-API gap:
    - Time window: 4 weeks (extended from the normal 2 weeks since this is a catchup)
    - Follow the same guardrails (cap at 5 channels per feature, skip unrelated channels)
    - Include any relevant Slack context in the Issue body
-3. Create a GitHub Issue for each non-API gap (or group related gaps by feature area):
+3. Gather Linear ticket context for customer insights and business justification:
+   - **Requires** the `LINEAR_API_KEY` environment secret (see Prerequisites below)
+   - If the secret is not available, skip this step and note in the Issue body:
+     "Linear context unavailable — LINEAR_API_KEY not configured."
+   - **Correlation strategy** (apply in order, stop once tickets are found for a feature):
+     a. **PR attachment match (primary):** Query Linear for issues that have GitHub PR
+        attachments (via the `attachments` relation) whose URLs match merged PRs
+        associated with this feature. This is the most reliable method.
+     b. **Branch name / PR number search (fallback):** If no attachment match is found,
+        search Linear issue titles and descriptions for the feature branch name
+        (e.g., `feature/messaging-system`) or PR number (e.g., `#23`).
+     c. **Keyword search (last resort):** Search Linear issues by feature name keywords
+        (e.g., "messaging", "chat system"). Only use results where the match is
+        clearly about the same feature — discard ambiguous matches.
+   - **Extraction — for each correlated ticket, extract:**
+     - Ticket identifier and title (e.g., "MAR-10: Messaging/Chat System")
+     - Customer names and quotes from the ticket description or comments
+     - Pain points, feature requests, and use cases mentioned
+     - Market sizing or business impact data if present
+     - Priority and status of the ticket
+   - **Guardrails:**
+     - Cap at 10 tickets per feature to avoid slowdowns on large backlogs
+     - If a ticket contains potentially sensitive customer data (email addresses,
+       phone numbers, account IDs), redact those fields and include only names,
+       company names, and general feedback. The human review gate (via `/approve-docs`)
+       provides a final check before anything reaches Notion.
+     - Do not include internal-only notes or comments marked as confidential
+     - If the Linear API returns errors or rate-limits, log the error and continue
+       without Linear context rather than blocking the entire workflow
+4. Create a GitHub Issue for each non-API gap (or group related gaps by feature area):
    - Title: "Doc Catchup — [Feature Name]: [Brief description of gap]"
    - Body contains:
      - The proposed Notion page content (fully drafted per the appropriate template)
      - Target Notion page (existing page URL if updating, or "New page under [parent]" if creating)
      - Slack context found (if any)
+     - Linear ticket context (if any), formatted as a **"Customer Context"** section:
+       ```
+       ## Customer Context (from Linear)
+       
+       **Related tickets:** MAR-10, MAR-15
+       
+       - **[Customer Name] at [Company]:** "[Quote or paraphrased feedback]"
+         _(from [ticket ID], [priority])_
+       - **Market impact:** [sizing data if available]
+       - **Business justification:** [summary of why this feature was built]
+       ```
      - A note: "Comment `/approve-docs` to apply these changes to Notion."
    - Label the Issue with `doc-catchup` if the label exists (create it if not)
 
@@ -155,6 +213,18 @@ on the gap report Issue (from Step 2d) with:
    - Documentation coverage before catchup vs. after auto-apply
    - Remaining gaps pending review
 
+## Prerequisites
+
+- **Notion workspace access** — required for Steps 2 and 3a (applying docs)
+- **LINEAR_API_KEY** — a Linear personal API key stored as an environment secret.
+  Required for Step 3b (Linear ticket context gathering). Generate one at
+  https://linear.app/settings/api under "Personal API keys". If not available,
+  the skill will skip Linear context gathering and note it in the output.
+- **Linear-GitHub integration** — for best results, PRs should be attached to
+  Linear tickets (via Linear's GitHub integration or manual attachment links).
+  The correlation strategy includes fallbacks for repos where this isn't set up,
+  but PR attachment matching is the most reliable method.
+
 ## Error Handling
 
 - If a Notion API call fails, log the error and continue with the next gap.
@@ -165,6 +235,12 @@ on the gap report Issue (from Step 2d) with:
   3. Config and infrastructure files (lowest priority)
 - If no Notion workspace access is available, stop after Step 2 (gap report) and
   note in the Issue that Notion access is required to proceed.
+- If the Linear API is unavailable or returns errors:
+  - Log the error and continue without Linear context
+  - Note in each affected Issue body that Linear context was unavailable
+  - Do not block the overall workflow — Linear context is additive, not required
+- If Linear rate-limiting occurs (HTTP 429), back off exponentially (1s, 2s, 4s)
+  up to 3 retries per request, then skip and continue.
 
 ## Skills Referenced
 

@@ -34,6 +34,7 @@ const analyticsRouter = require("./routes/analytics");
 const conversationsRouter = require("./routes/conversations");
 const messagesRouter = require("./routes/messages");
 const couponsRouter = require("./routes/coupons");
+const inventoryRouter = require("./routes/inventory");
 const wishlistsRouter = require("./routes/wishlists");
 
 // Register route files
@@ -43,6 +44,7 @@ app.use("/api/analytics", analyticsRouter);
 app.use("/api/conversations", conversationsRouter);
 app.use("/api/messages", messagesRouter);
 app.use("/api/coupons", couponsRouter);
+app.use("/api/inventory", inventoryRouter);
 app.use("/api/wishlists", wishlistsRouter);
 
 // ─────────────────────────────────────────────
@@ -58,12 +60,14 @@ app.get("/", (req, res) => {
 // PRODUCT ENDPOINTS
 // ─────────────────────────────────────────────
 
-// ENDPOINT 2: GET all products (with optional pagination, sorting, category, and price filters)
-// Example: GET http://localhost:5000/products?page=1&limit=20&sortBy=price&order=asc&category=Electronics&minPrice=10&maxPrice=100
-// Supported sortBy values: price, createdAt, name, averageRating
+// ENDPOINT 2: GET all products (with optional pagination, sorting, category, price, stock, and brand filters)
+// Example: GET http://localhost:5000/products?page=1&limit=20&sortBy=price&order=asc&category=Electronics&minPrice=10&maxPrice=100&inStock=true&brand=Nike
+// Supported sortBy values: price, createdAt, name, averageRating, totalStock
 // Order: asc or desc (default: desc)
 // Category filter: case-insensitive exact match on the product's category field
 // Price filters: minPrice and maxPrice for price range filtering
+// Stock filter: inStock=true to show only products with totalStock > 0
+// Brand filter: case-insensitive match on brand field
 app.get("/products", async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -71,7 +75,7 @@ app.get("/products", async (req, res) => {
     const skip = (page - 1) * limit;
 
     // Determine sort field and order
-    const allowedSortFields = ["price", "createdAt", "name", "averageRating"];
+    const allowedSortFields = ["price", "createdAt", "name", "averageRating", "totalStock"];
     const sortBy = allowedSortFields.includes(req.query.sortBy) ? req.query.sortBy : "createdAt";
     const order = req.query.order === "asc" ? 1 : -1;
     const sortOrder = { [sortBy]: order };
@@ -99,6 +103,12 @@ app.get("/products", async (req, res) => {
     }
     if (req.query.maxPrice) {
       filter.price = { ...filter.price, $lte: parseFloat(req.query.maxPrice) };
+    }
+    if (req.query.inStock === "true") {
+      filter.totalStock = { $gt: 0 };
+    }
+    if (req.query.brand) {
+      filter.brand = { $regex: new RegExp(`^${req.query.brand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, "i") };
     }
 
     const total = await Product.countDocuments(filter);
@@ -206,11 +216,11 @@ app.get("/products/:id", async (req, res) => {
 // Example: POST http://localhost:5000/products  with JSON body
 app.post("/products", async (req, res) => {
   try {
-    const { name, price, description, image, category } = req.body;
+    const { name, price, description, image, category, brand, tags, availableSizes, availableColors, weightUnit } = req.body;
     if (!name || !price) {
       return res.status(400).json({ error: "Name and price are required" });
     }
-    const product = new Product({ name, price, description, image, category });
+    const product = new Product({ name, price, description, image, category, brand, tags, availableSizes, availableColors, weightUnit });
     await product.save();
     res.status(201).json(product);
   } catch (err) {
@@ -222,11 +232,11 @@ app.post("/products", async (req, res) => {
 // Example: PUT http://localhost:5000/products/64abc123...  with updated JSON body
 app.put("/products/:id", async (req, res) => {
   try {
-    // Only allow updating user-editable fields (not server-managed fields like averageRating, reviewCount)
-    const { name, price, description, image, category } = req.body;
+    // Only allow updating user-editable fields (not server-managed fields like averageRating, reviewCount, hasVariants, variantCount, totalStock, availableSizes, availableColors)
+    const { name, price, description, image, category, brand, tags, weightUnit } = req.body;
     const product = await Product.findByIdAndUpdate(
       req.params.id,
-      { name, price, description, image, category },
+      { name, price, description, image, category, brand, tags, weightUnit },
       { new: true, runValidators: true } // return the updated doc
     );
     if (!product) return res.status(404).json({ error: "Product not found" });

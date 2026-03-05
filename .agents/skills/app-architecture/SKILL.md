@@ -4,6 +4,13 @@ This skill instructs Devin to derive the application architecture by analyzing t
 repository. Do NOT rely on this document for specific file names, endpoints, or
 data models — derive them fresh from the code.
 
+> **When is a full derivation needed?** A complete 5-step derivation is expensive.
+> It is only necessary for **one-time bulk operations** like the `doc-catchup` skill
+> (initial onboarding or major documentation resets). For ongoing maintenance
+> (`weekly-doc-batch`, `notion-doc-sync`), a targeted derivation of just the files
+> changed in a PR diff is sufficient — you do not need to re-derive the entire
+> architecture every time.
+
 ## How to derive the architecture
 
 When you need to understand the app architecture (e.g., for classification or
@@ -36,11 +43,15 @@ documentation purposes), analyze the repo as follows:
   deliver user-facing functionality
 
 ## When to derive
-- **Weekly batch**: Derive the architecture at the start of each weekly run, before
-  processing any PRs. This ensures the mapping reflects the current state of main.
-- **Phase 1 (real-time)**: For individual PR classification, you may not need the full
-  architecture — just read the files changed in the PR diff. But if classification is
-  ambiguous, do a targeted derivation of the relevant feature area.
+- **One-time catchup (`doc-catchup`)**: Derive the full architecture (all 5 steps)
+  at the start of the catchup. This is the only scenario that requires a complete
+  derivation — use it for initial onboarding or when docs have drifted far from code.
+- **Weekly batch (`weekly-doc-batch`)**: Do NOT derive the full architecture.
+  Instead, read the files changed in each merged PR diff to understand what was
+  added or modified. Only do a targeted derivation of a specific feature area if
+  PR classification is ambiguous.
+- **Real-time sync (`notion-doc-sync`)**: Same as weekly batch — read the PR diff,
+  not the whole repo. Targeted derivation only if needed for context.
 
 ## Caching
 You do not need to persist the derived architecture anywhere. Derive it fresh each
