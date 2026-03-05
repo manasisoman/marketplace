@@ -107,20 +107,26 @@ router.post("/:id/restock", auth, async (req, res) => {
       return res.status(400).json({ error: "Positive quantity is required" });
     }
 
-    const entry = await Inventory.findById(req.params.id);
+    // Atomic restock to prevent race conditions (consistent with reserve/release endpoints)
+    const entry = await Inventory.findOneAndUpdate(
+      { _id: req.params.id },
+      {
+        $inc: { quantity: quantity },
+        $set: { lastRestockedAt: new Date() },
+        $push: {
+          restockHistory: {
+            quantity,
+            note: note || "",
+            supplier: supplier || "",
+          },
+        },
+      },
+      { new: true }
+    );
     if (!entry) {
       return res.status(404).json({ error: "Inventory entry not found" });
     }
 
-    entry.quantity += quantity;
-    entry.lastRestockedAt = new Date();
-    entry.restockHistory.push({
-      quantity,
-      note: note || "",
-      supplier: supplier || "",
-    });
-
-    await entry.save();
     await updateProductStockInfo(entry.productId);
 
     res.json(entry);
