@@ -306,7 +306,7 @@ router.post("/:id/collaborators", auth, async (req, res) => {
       return res.status(400).json({ error: "collaboratorId is required" });
     }
 
-    if (wishlist.collaborators.includes(collaboratorId)) {
+    if (wishlist.collaborators.some(id => id.toString() === collaboratorId)) {
       return res.status(409).json({ error: "User is already a collaborator" });
     }
 
@@ -331,7 +331,7 @@ router.get("/:id/price-changes", auth, async (req, res) => {
     }
 
     const priceChanges = wishlist.items
-      .filter((item) => item.productId && item.priceAtAdd)
+      .filter((item) => item.productId && item.priceAtAdd != null && item.priceAtAdd !== 0)
       .map((item) => ({
         productId: item.productId._id,
         name: item.productId.name,
