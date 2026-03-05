@@ -27,9 +27,13 @@ const Favorite = require("./models/Favorite");
 
 // Import route files
 const ordersRouter = require("./routes/orders");
+const conversationsRouter = require("./routes/conversations");
+const messagesRouter = require("./routes/messages");
 
 // Register route files
 app.use("/api/orders", ordersRouter);
+app.use("/api/conversations", conversationsRouter);
+app.use("/api/messages", messagesRouter);
 
 // ─────────────────────────────────────────────
 // ROOT
