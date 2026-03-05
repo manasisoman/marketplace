@@ -17,32 +17,60 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Trigger Devin for Phase 2 Apply
-        uses: devin-ai/trigger@v1
-        with:
-          prompt: |
-            ## Phase 2: Apply Approved Documentation Changes
+        env:
+          DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
+        run: |
+          PROMPT_TEMPLATE=$(cat <<'PROMPT_EOF'
+          ## Phase 2: Apply Approved Documentation Changes
 
-            A reviewer has approved the proposed documentation changes.
-            Your task is to apply these changes to Notion.
+          A reviewer has approved the proposed documentation changes.
+          Your task is to apply these changes to Notion.
 
-            **Issue:** #${{ github.event.issue.number }}
-            **Approved by:** ${{ github.event.comment.user.login }}
+          **Issue:** #__ISSUE_NUMBER__
+          **Approved by:** __COMMENT_AUTHOR__
 
-            **Instructions:**
-            1. Read the GitHub Issue body to understand the approved documentation changes
-            2. For each proposed change:
-               a. Fetch the current content of the target Notion page
-               b. Apply the updates following doc-standards skill conventions
-               c. Follow the Notion Page Creation Policy defined in the
-                  notion-doc-sync skill if creating new pages. Use your judgment
-                  per the policy criteria — create pages when the policy says to,
-                  and prefer updating existing pages when appropriate.
-            3. Post a confirmation comment on the Issue with:
-               - Links to all updated Notion pages
-               - Links to any newly created Notion pages (with parent location noted)
-               - Summary of changes applied
+          **Instructions:**
+          1. Read the GitHub Issue body to understand the approved documentation changes
+          2. For each proposed change:
+             a. Fetch the current content of the target Notion page
+             b. Apply the updates following doc-standards skill conventions
+             c. Follow the Notion Page Creation Policy defined in the
+                notion-doc-sync skill if creating new pages. Use your judgment
+                per the policy criteria — create pages when the policy says to,
+                and prefer updating existing pages when appropriate.
+          3. Post a confirmation comment on the Issue with:
+             - Links to all updated Notion pages
+             - Links to any newly created Notion pages (with parent location noted)
+             - Summary of changes applied
 
-            **Skills to reference:**
-            - `.agents/skills/notion-doc-sync/SKILL.md` — for Notion page creation policy and sync process
-            - `.agents/skills/doc-standards/SKILL.md` — for documentation formatting standards
-            - `.agents/skills/app-architecture/SKILL.md` — for architecture derivation if needed
+          **Skills to reference:**
+          - .agents/skills/notion-doc-sync/SKILL.md — for Notion page creation policy and sync process
+          - .agents/skills/doc-standards/SKILL.md — for documentation formatting standards
+          - .agents/skills/app-architecture/SKILL.md — for architecture derivation if needed
+          PROMPT_EOF
+          )
+
+          PAYLOAD=$(jq -n \
+            --arg template "$PROMPT_TEMPLATE" \
+            --arg issue_number "$ISSUE_NUMBER" \
+            --arg comment_author "$COMMENT_AUTHOR" \
+            '{prompt: ($template | gsub("__ISSUE_NUMBER__"; $issue_number) | gsub("__COMMENT_AUTHOR__"; $comment_author))}')
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://api.devin.ai/v1/sessions" \
+            -H "Authorization: Bearer ${DEVIN_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 400 ]; then
+            echo "Error triggering Devin session: HTTP $HTTP_CODE"
+            echo "$BODY"
+            exit 1
+          fi
+
+          SESSION_URL=$(echo "$BODY" | jq -r '.url // empty')
+          echo "Devin session created: $SESSION_URL"

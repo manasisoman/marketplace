@@ -14,34 +14,66 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Trigger Devin for Phase 1 Classification
-        uses: devin-ai/trigger@v1
-        with:
-          prompt: |
-            ## Phase 1: Real-Time PR Classification
+        env:
+          DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          PROMPT_TEMPLATE=$(cat <<'PROMPT_EOF'
+          ## Phase 1: Real-Time PR Classification
 
-            A PR has been merged to main. Your task is to classify the changes and
-            propose documentation updates.
+          A PR has been merged to main. Your task is to classify the changes and
+          propose documentation updates.
 
-            **PR Details:**
-            - PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}
-            - Author: ${{ github.event.pull_request.user.login }}
-            - Merge commit: ${{ github.event.pull_request.merge_commit_sha }}
+          **PR Details:**
+          - PR #__PR_NUMBER__: __PR_TITLE__
+          - Author: __PR_AUTHOR__
+          - Merge commit: __MERGE_SHA__
 
-            **Instructions:**
-            1. Read the PR diff to understand what changed
-            2. Derive the feature area by analyzing the files changed (use the
-               app-architecture skill's self-derivation approach — do NOT rely on
-               hardcoded mappings)
-            3. Determine which Notion page(s) need updating based on the feature area
-            4. Follow the Notion Page Creation Policy defined in the
-               notion-doc-sync skill to decide whether to update existing pages
-               or create new ones. Use your judgment per the policy criteria.
-            5. Post a classification comment on the PR with:
-               - Feature area identified
-               - Notion page(s) to update or create
-               - Summary of proposed documentation changes
-               - If recommending a new page, include the rationale
+          **Instructions:**
+          1. Read the PR diff to understand what changed
+          2. Derive the feature area by analyzing the files changed (use the
+             app-architecture skill's self-derivation approach — do NOT rely on
+             hardcoded mappings)
+          3. Determine which Notion page(s) need updating based on the feature area
+          4. Follow the Notion Page Creation Policy defined in the
+             notion-doc-sync skill to decide whether to update existing pages
+             or create new ones. Use your judgment per the policy criteria.
+          5. Post a classification comment on the PR with:
+             - Feature area identified
+             - Notion page(s) to update or create
+             - Summary of proposed documentation changes
+             - If recommending a new page, include the rationale
 
-            **Skills to reference:**
-            - `.agents/skills/notion-doc-sync/SKILL.md` — for Notion page creation policy
-            - `.agents/skills/app-architecture/SKILL.md` — for how to derive architecture
+          **Skills to reference:**
+          - .agents/skills/notion-doc-sync/SKILL.md — for Notion page creation policy
+          - .agents/skills/app-architecture/SKILL.md — for how to derive architecture
+          PROMPT_EOF
+          )
+
+          PAYLOAD=$(jq -n \
+            --arg template "$PROMPT_TEMPLATE" \
+            --arg pr_number "$PR_NUMBER" \
+            --arg pr_title "$PR_TITLE" \
+            --arg pr_author "$PR_AUTHOR" \
+            --arg merge_sha "$MERGE_SHA" \
+            '{prompt: ($template | gsub("__PR_NUMBER__"; $pr_number) | gsub("__PR_TITLE__"; $pr_title) | gsub("__PR_AUTHOR__"; $pr_author) | gsub("__MERGE_SHA__"; $merge_sha))}')
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://api.devin.ai/v1/sessions" \
+            -H "Authorization: Bearer ${DEVIN_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 400 ]; then
+            echo "Error triggering Devin session: HTTP $HTTP_CODE"
+            echo "$BODY"
+            exit 1
+          fi
+
+          SESSION_URL=$(echo "$BODY" | jq -r '.url // empty')
+          echo "Devin session created: $SESSION_URL"
