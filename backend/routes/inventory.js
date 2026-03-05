@@ -137,22 +137,28 @@ router.post("/:id/reserve", auth, async (req, res) => {
       return res.status(400).json({ error: "Positive quantity is required" });
     }
 
-    const entry = await Inventory.findById(req.params.id);
-    if (!entry) {
-      return res.status(404).json({ error: "Inventory entry not found" });
-    }
+    // Atomic reserve to prevent race conditions
+    const entry = await Inventory.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        $expr: { $gte: [{ $subtract: ["$quantity", "$reserved"] }, quantity] },
+      },
+      { $inc: { reserved: quantity } },
+      { new: true }
+    );
 
-    const available = entry.quantity - entry.reserved;
-    if (quantity > available) {
+    if (!entry) {
+      const exists = await Inventory.findById(req.params.id);
+      if (!exists) {
+        return res.status(404).json({ error: "Inventory entry not found" });
+      }
+      const available = exists.quantity - exists.reserved;
       return res.status(409).json({
         error: "Insufficient stock",
         available,
         requested: quantity,
       });
     }
-
-    entry.reserved += quantity;
-    await entry.save();
 
     res.json(entry);
   } catch (err) {
@@ -226,10 +232,15 @@ async function updateProductStockInfo(productId) {
     (e) => e.variant.size || e.variant.color || e.variant.material
   );
 
+  const availableSizes = [...new Set(entries.map((e) => e.variant.size).filter(Boolean))];
+  const availableColors = [...new Set(entries.map((e) => e.variant.color).filter(Boolean))];
+
   await Product.findByIdAndUpdate(productId, {
     totalStock,
     hasVariants,
     variantCount: entries.length,
+    availableSizes,
+    availableColors,
   });
 }
 
