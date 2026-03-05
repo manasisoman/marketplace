@@ -1,0 +1,47 @@
+name: Sync Docs on PR Merge
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  classify-and-propose:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Trigger Devin for Phase 1 Classification
+        uses: devin-ai/trigger@v1
+        with:
+          prompt: |
+            ## Phase 1: Real-Time PR Classification
+
+            A PR has been merged to main. Your task is to classify the changes and
+            propose documentation updates.
+
+            **PR Details:**
+            - PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}
+            - Author: ${{ github.event.pull_request.user.login }}
+            - Merge commit: ${{ github.event.pull_request.merge_commit_sha }}
+
+            **Instructions:**
+            1. Read the PR diff to understand what changed
+            2. Derive the feature area by analyzing the files changed (use the
+               app-architecture skill's self-derivation approach — do NOT rely on
+               hardcoded mappings)
+            3. Determine which Notion page(s) need updating based on the feature area
+            4. Follow the Notion Page Creation Policy defined in the
+               notion-doc-sync skill to decide whether to update existing pages
+               or create new ones. Use your judgment per the policy criteria.
+            5. Post a classification comment on the PR with:
+               - Feature area identified
+               - Notion page(s) to update or create
+               - Summary of proposed documentation changes
+               - If recommending a new page, include the rationale
+
+            **Skills to reference:**
+            - `.agents/skills/notion-doc-sync/SKILL.md` — for Notion page creation policy
+            - `.agents/skills/app-architecture/SKILL.md` — for how to derive architecture

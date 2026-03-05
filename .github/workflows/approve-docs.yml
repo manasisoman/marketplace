@@ -1,0 +1,44 @@
+name: Approve and Apply Doc Changes
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  apply-docs:
+    if: contains(github.event.comment.body, '/approve-docs')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Trigger Devin for Phase 2 Apply
+        uses: devin-ai/trigger@v1
+        with:
+          prompt: |
+            ## Phase 2: Apply Approved Documentation Changes
+
+            A reviewer has approved the proposed documentation changes.
+            Your task is to apply these changes to Notion.
+
+            **Issue:** #${{ github.event.issue.number }}
+            **Approved by:** ${{ github.event.comment.user.login }}
+
+            **Instructions:**
+            1. Read the GitHub Issue body to understand the approved documentation changes
+            2. For each proposed change:
+               a. Fetch the current content of the target Notion page
+               b. Apply the updates following doc-standards skill conventions
+               c. Follow the Notion Page Creation Policy defined in the
+                  notion-doc-sync skill if creating new pages. Use your judgment
+                  per the policy criteria — create pages when the policy says to,
+                  and prefer updating existing pages when appropriate.
+            3. Post a confirmation comment on the Issue with:
+               - Links to all updated Notion pages
+               - Links to any newly created Notion pages (with parent location noted)
+               - Summary of changes applied
+
+            **Skills to reference:**
+            - `.agents/skills/notion-doc-sync/SKILL.md` — for Notion page creation policy and sync process
+            - `.agents/skills/doc-standards/SKILL.md` — for documentation formatting standards
+            - `.agents/skills/app-architecture/SKILL.md` — for architecture derivation if needed
