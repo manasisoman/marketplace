@@ -174,13 +174,29 @@ router.post("/:id/release", auth, async (req, res) => {
       return res.status(400).json({ error: "Positive quantity is required" });
     }
 
-    const entry = await Inventory.findById(req.params.id);
-    if (!entry) {
-      return res.status(404).json({ error: "Inventory entry not found" });
-    }
+    // Atomic release to prevent race conditions (mirrors reserve endpoint)
+    const entry = await Inventory.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        reserved: { $gte: quantity },
+      },
+      { $inc: { reserved: -quantity } },
+      { new: true }
+    );
 
-    entry.reserved = Math.max(0, entry.reserved - quantity);
-    await entry.save();
+    if (!entry) {
+      const exists = await Inventory.findById(req.params.id);
+      if (!exists) {
+        return res.status(404).json({ error: "Inventory entry not found" });
+      }
+      // If reserved < quantity, release what's available
+      const updated = await Inventory.findOneAndUpdate(
+        { _id: req.params.id },
+        { $set: { reserved: 0 } },
+        { new: true }
+      );
+      return res.json(updated);
+    }
 
     res.json(entry);
   } catch (err) {
