@@ -88,11 +88,13 @@ jobs:
 
           **If the PR contains ONLY non-API changes** (no API endpoints at all):
           - Do NOT apply any changes to Notion.
-          - End the classification comment with a note:
-            "Non-API change — documentation updates will be addressed in the
-            next weekly batch run."
-          - Stop here. The weekly-doc-batch process will pick up this PR and
-            handle the documentation updates with full Slack context gathering.
+          - Create GitHub Issues for the non-API documentation changes, grouped
+            by feature area, following the same format as above (title, drafted
+            content, target Notion page, `/approve-docs` note).
+          - End the classification comment with a note listing the Issues created:
+            "Non-API change — GitHub Issues filed for review. Comment
+            `/approve-docs` on each to apply. The weekly-doc-batch process may
+            also gather additional Slack context for these changes."
 
           **Skills to reference:**
           - .agents/skills/notion-doc-sync/SKILL.md — for Notion page creation policy
