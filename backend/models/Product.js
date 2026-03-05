@@ -15,6 +15,8 @@ const productSchema = new mongoose.Schema(
     weightUnit: { type: String, enum: ["oz", "lb", "g", "kg"], default: "oz" },
     brand: { type: String, default: "" },
     tags: [{ type: String }],
+    averageRating: { type: Number, default: 0 },
+    reviewCount: { type: Number, default: 0 },
   },
   { timestamps: true } // adds createdAt and updatedAt automatically
 );
