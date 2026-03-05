@@ -28,12 +28,14 @@ const ProductView = require("./models/ProductView");
 const Category = require("./models/Category");
 
 // Import route files
+const ordersRouter = require("./routes/orders");
 const analyticsRouter = require("./routes/analytics");
 const conversationsRouter = require("./routes/conversations");
 const messagesRouter = require("./routes/messages");
 const inventoryRouter = require("./routes/inventory");
 
 // Register route files
+app.use("/api/orders", ordersRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/conversations", conversationsRouter);
 app.use("/api/messages", messagesRouter);
