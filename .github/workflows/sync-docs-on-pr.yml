@@ -22,10 +22,11 @@ jobs:
           MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
         run: |
           PROMPT_TEMPLATE=$(cat <<'PROMPT_EOF'
-          ## Phase 1: Real-Time PR Classification
+          ## Phase 1 + Conditional Phase 2: Classify and Apply Documentation Updates
 
-          A PR has been merged to main. Your task is to classify the changes and
-          propose documentation updates.
+          A PR has been merged to main. Your task is to classify the changes,
+          propose documentation updates, and — if the changes are API endpoint
+          changes — auto-apply the documentation updates to Notion.
 
           **PR Details:**
           - PR #__PR_NUMBER__: __PR_TITLE__
@@ -33,22 +34,52 @@ jobs:
           - Merge commit: __MERGE_SHA__
 
           **Instructions:**
+
+          ### Step 1: Classify (Phase 1)
           1. Read the PR diff to understand what changed
           2. Derive the feature area by analyzing the files changed (use the
              app-architecture skill's self-derivation approach — do NOT rely on
              hardcoded mappings)
-          3. Determine which Notion page(s) need updating based on the feature area
-          4. Follow the Notion Page Creation Policy defined in the
+          3. Determine whether the changes are **API endpoint changes** (e.g.,
+             new/modified routes, query parameters, response shapes, middleware
+             in backend route files) vs. other changes (frontend/UI, customer
+             experience, config, tooling, etc.)
+          4. Determine which Notion page(s) need updating based on the feature area
+          5. Follow the Notion Page Creation Policy defined in the
              notion-doc-sync skill to decide whether to update existing pages
              or create new ones. Use your judgment per the policy criteria.
-          5. Post a classification comment on the PR with:
+          6. Post a classification comment on the PR with:
              - Feature area identified
+             - Whether this is an API endpoint change or another type of change
              - Notion page(s) to update or create
              - Summary of proposed documentation changes
              - If recommending a new page, include the rationale
 
+          ### Step 2: Apply or Defer (Phase 2)
+          After posting the classification comment, decide the next step based on
+          the type of change:
+
+          **If the PR contains API endpoint changes** (auto-apply):
+          - Proceed immediately to apply the documentation changes to Notion.
+          - For each proposed change:
+            a. Fetch the current content of the target Notion page
+            b. Apply the updates following doc-standards skill conventions
+          - If the Notion Page Creation Policy calls for a new page, create it
+            following the policy guidelines.
+          - Post a follow-up comment on the PR confirming the changes were applied,
+            with links to the updated/created Notion pages.
+
+          **If the PR does NOT contain API endpoint changes** (defer to weekly batch):
+          - Do NOT apply changes to Notion.
+          - End the classification comment with a note:
+            "Non-API change — documentation updates will be addressed in the
+            next weekly batch run."
+          - Stop here. The weekly-doc-batch process will pick up this PR and
+            handle the documentation updates with full Slack context gathering.
+
           **Skills to reference:**
           - .agents/skills/notion-doc-sync/SKILL.md — for Notion page creation policy
+          - .agents/skills/doc-standards/SKILL.md — for documentation formatting standards
           - .agents/skills/app-architecture/SKILL.md — for how to derive architecture
           PROMPT_EOF
           )

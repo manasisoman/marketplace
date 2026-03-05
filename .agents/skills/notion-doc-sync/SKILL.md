@@ -44,15 +44,40 @@ When a PR is merged to main:
 
 ## Phase 2: Applying Documentation Updates
 
-When approved to apply documentation changes:
-1. Read the approved classification and proposed changes
-2. Fetch the current content of the target Notion page(s)
-3. Apply the updates following the doc-standards skill conventions
-4. If creating a new page, follow the Notion Page Creation Policy above
-5. Post a confirmation comment with links to the updated/created Notion pages
+Phase 2 is triggered differently depending on the type of change identified
+during classification:
+
+### Auto-apply (API endpoint changes)
+When the PR contains API endpoint changes (new/modified routes, query parameters,
+response shapes, middleware in backend route files), Phase 2 runs automatically
+in the same Devin session as Phase 1. After posting the classification comment:
+1. Immediately proceed to fetch the current content of the target Notion page(s)
+2. Apply the updates following the doc-standards skill conventions
+3. If the Notion Page Creation Policy calls for a new page, create it
+4. Post a follow-up comment on the PR confirming the changes were applied,
+   with links to the updated/created Notion pages
+
+### Deferred to weekly batch (non-API changes)
+When the PR contains non-API changes (frontend/UI, customer experience, config,
+tooling, etc.), Phase 2 is NOT triggered in real time. Instead:
+1. The classification comment ends with a note:
+   "Non-API change — documentation updates will be addressed in the next
+   weekly batch run."
+2. The weekly-doc-batch process picks up this PR along with other merged PRs,
+   gathers Slack context, groups related PRs, and proposes documentation
+   updates via GitHub Issues for reviewer approval.
+
+### Manual approval via `/approve-docs`
+The `approve-docs.yml` workflow provides a manual override for any PR or Issue.
+When a reviewer comments `/approve-docs`:
+1. A new Devin session is triggered to apply the proposed documentation changes
+2. Devin reads the classification from the PR/Issue comments, applies all
+   proposed changes, and posts a confirmation comment
+This can be used to expedite non-API changes that shouldn't wait for the weekly
+batch, or to trigger updates on weekly batch Issues after review.
 
 ## Slack Approval Monitor
 
 Monitor the designated Slack channel for approval signals on documentation changes.
-When a reviewer approves changes in the GitHub Issue, proceed with applying the
-documentation updates to Notion.
+When a reviewer approves changes in the GitHub Issue or PR, proceed with applying
+the documentation updates to Notion.
