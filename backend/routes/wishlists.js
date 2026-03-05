@@ -226,21 +226,21 @@ router.put("/:id/items/:productId", auth, async (req, res) => {
 
     await wishlist.save();
 
-    // Update price alert
-    if (alertOnPriceDrop && targetPrice != null) {
+    // Update price alert using item's resolved state (not raw req.body)
+    if (item.alertOnPriceDrop && item.targetPrice != null) {
       const product = await Product.findById(req.params.productId);
       await PriceAlert.findOneAndUpdate(
         { userId: req.user._id, productId: req.params.productId, isActive: true },
         {
           userId: req.user._id,
           productId: req.params.productId,
-          targetPrice,
+          targetPrice: item.targetPrice,
           originalPrice: product ? product.price : 0,
           isActive: true,
         },
         { upsert: true, new: true }
       );
-    } else if (alertOnPriceDrop === false) {
+    } else if (item.alertOnPriceDrop === false) {
       await PriceAlert.updateMany(
         { userId: req.user._id, productId: req.params.productId },
         { isActive: false }
@@ -274,14 +274,15 @@ router.delete("/:id/items/:productId", auth, async (req, res) => {
     wishlist.items.splice(itemIndex, 1);
     await wishlist.save();
 
-    // Deactivate price alerts for this product — check ALL users' wishlists, not just requester
-    const anyWishlistWithAlert = await Wishlist.findOne({
-      "items": { $elemMatch: { productId: req.params.productId, alertOnPriceDrop: true } },
+    // Deactivate price alerts for this product scoped to the requesting user
+    const userHasAlertElsewhere = await Wishlist.findOne({
+      userId: req.user._id,
+      _id: { $ne: req.params.id },
+      items: { $elemMatch: { productId: req.params.productId, alertOnPriceDrop: true } },
     });
-    if (!anyWishlistWithAlert) {
-      // No wishlist anywhere has an active alert for this product — deactivate all alerts
+    if (!userHasAlertElsewhere) {
       await PriceAlert.updateMany(
-        { productId: req.params.productId },
+        { userId: req.user._id, productId: req.params.productId },
         { isActive: false }
       );
     }
