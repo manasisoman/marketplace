@@ -42,8 +42,8 @@ app.get("/", (req, res) => {
 // Example: GET http://localhost:5000/products?page=1&limit=20
 app.get("/products", async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
     const skip = (page - 1) * limit;
 
     const total = await Product.countDocuments();
