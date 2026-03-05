@@ -84,6 +84,12 @@ router.put("/:id/status", auth, async (req, res) => {
       return res.status(404).json({ error: "Order not found" });
     }
 
+    // Only seller can update order status
+    const isSeller = order.sellerId && order.sellerId.toString() === req.user._id.toString();
+    if (!isSeller) {
+      return res.status(403).json({ error: "Only the seller can update order status" });
+    }
+
     // Validate status transition
     const allowed = validTransitions[order.status] || [];
     if (!allowed.includes(status)) {
@@ -205,6 +211,12 @@ router.put("/:id/refund", auth, async (req, res) => {
     const order = await Order.findById(req.params.id);
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
+    }
+
+    // Only seller can process refunds
+    const isSeller = order.sellerId && order.sellerId.toString() === req.user._id.toString();
+    if (!isSeller) {
+      return res.status(403).json({ error: "Only the seller can process refund requests" });
     }
 
     // Only process if refund is in 'requested' state

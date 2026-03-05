@@ -7,22 +7,36 @@ function OrderTimeline({ statusHistory, currentStatus }) {
     "delivered",
   ];
 
-  const currentIndex = allStatuses.indexOf(currentStatus);
+  // For cancelled/refunded orders, determine the last normal status reached
+  // by looking at statusHistory
+  let effectiveIndex = allStatuses.indexOf(currentStatus);
+  if (effectiveIndex === -1 && statusHistory && statusHistory.length > 0) {
+    // Find the furthest normal status reached before cancellation/refund
+    for (let i = statusHistory.length - 1; i >= 0; i--) {
+      const idx = allStatuses.indexOf(statusHistory[i].status);
+      if (idx !== -1) {
+        effectiveIndex = idx;
+        break;
+      }
+    }
+  }
+  const currentIndex = effectiveIndex;
+  const isCancelledOrRefunded = currentStatus === "cancelled" || currentStatus === "refunded";
 
   return (
     <div className="order-timeline">
       <h3>Order Progress</h3>
+      {isCancelledOrRefunded && (
+        <div className={`timeline-terminal-status status-${currentStatus}`}>
+          Order {currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1)}
+        </div>
+      )}
       <div className="timeline-steps">
         {allStatuses.map((status, index) => {
           let stepClass = "timeline-step";
           if (index < currentIndex) stepClass += " completed";
-          else if (index === currentIndex) stepClass += " current";
+          else if (index === currentIndex) stepClass += isCancelledOrRefunded ? " completed" : " current";
           else stepClass += " upcoming";
-
-          // Check if order was cancelled or refunded
-          if (currentStatus === "cancelled" || currentStatus === "refunded") {
-            if (index === currentIndex) stepClass = "timeline-step current cancelled";
-          }
 
           return (
             <div key={status} className={stepClass}>
