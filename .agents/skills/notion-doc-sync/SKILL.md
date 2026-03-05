@@ -44,28 +44,37 @@ When a PR is merged to main:
 
 ## Phase 2: Applying Documentation Updates
 
-Phase 2 is triggered in one of two ways depending on the classification outcome:
+Phase 2 is triggered differently depending on the type of change identified
+during classification:
 
-### Auto-apply (no new pages needed)
-When the classification determines that only existing Notion pages need updating
-(no new pages required), Phase 2 runs automatically in the same Devin session as
-Phase 1. After posting the classification comment:
+### Auto-apply (API endpoint changes)
+When the PR contains API endpoint changes (new/modified routes, query parameters,
+response shapes, middleware in backend route files), Phase 2 runs automatically
+in the same Devin session as Phase 1. After posting the classification comment:
 1. Immediately proceed to fetch the current content of the target Notion page(s)
 2. Apply the updates following the doc-standards skill conventions
-3. Post a follow-up comment on the PR confirming the changes were applied,
-   with links to the updated Notion pages
+3. If the Notion Page Creation Policy calls for a new page, create it
+4. Post a follow-up comment on the PR confirming the changes were applied,
+   with links to the updated/created Notion pages
 
-### Manual approval (new pages recommended)
-When the classification recommends creating new Notion pages, Phase 2 requires
-manual approval because new pages affect the documentation structure:
-1. The classification comment includes a callout:
-   "⚠️ Recommending new Notion page: <title> — <reason>"
-2. The comment ends with a CTA:
-   "To approve and apply these changes, comment `/approve-docs` on this PR."
-3. When a reviewer comments `/approve-docs`, the `approve-docs.yml` workflow
-   triggers a new Devin session to apply the changes
-4. Devin reads the classification from the PR comments, applies all proposed
-   changes (including new page creation), and posts a confirmation comment
+### Deferred to weekly batch (non-API changes)
+When the PR contains non-API changes (frontend/UI, customer experience, config,
+tooling, etc.), Phase 2 is NOT triggered in real time. Instead:
+1. The classification comment ends with a note:
+   "Non-API change — documentation updates will be addressed in the next
+   weekly batch run."
+2. The weekly-doc-batch process picks up this PR along with other merged PRs,
+   gathers Slack context, groups related PRs, and proposes documentation
+   updates via GitHub Issues for reviewer approval.
+
+### Manual approval via `/approve-docs`
+The `approve-docs.yml` workflow provides a manual override for any PR or Issue.
+When a reviewer comments `/approve-docs`:
+1. A new Devin session is triggered to apply the proposed documentation changes
+2. Devin reads the classification from the PR/Issue comments, applies all
+   proposed changes, and posts a confirmation comment
+This can be used to expedite non-API changes that shouldn't wait for the weekly
+batch, or to trigger updates on weekly batch Issues after review.
 
 ## Slack Approval Monitor
 
