@@ -56,6 +56,16 @@ app.get("/", (req, res) => {
   res.json({ message: "Marketplace API is running", endpoints: 9 });
 });
 
+// ENDPOINT: Server status — uptime and memory usage
+app.get("/api/status", (req, res) => {
+  res.json({
+    status: "healthy",
+    uptime: process.uptime(),
+    memoryUsage: process.memoryUsage().rss,
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // ─────────────────────────────────────────────
 // PRODUCT ENDPOINTS
 // ─────────────────────────────────────────────

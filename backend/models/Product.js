@@ -17,6 +17,7 @@ const productSchema = new mongoose.Schema(
     tags: [{ type: String }],
     averageRating: { type: Number, default: 0 },
     reviewCount: { type: Number, default: 0 },
+    isFeatured: { type: Boolean, default: false },
   },
   { timestamps: true } // adds createdAt and updatedAt automatically
 );
