@@ -7,6 +7,8 @@ const productSchema = new mongoose.Schema(
     description: { type: String, default: "" },
     image: { type: String, default: "" },
     category: { type: String, default: "General" },
+    averageRating: { type: Number, default: 0 },
+    reviewCount: { type: Number, default: 0 },
   },
   { timestamps: true } // adds createdAt and updatedAt automatically
 );
