@@ -62,8 +62,7 @@ router.get("/", auth, async (req, res) => {
     if (active === "true") {
       filter.isActive = true;
       filter.endDate = { $gte: new Date() };
-    }
-    if (expired === "true") {
+    } else if (expired === "true") {
       filter.endDate = { $lt: new Date() };
     }
 
@@ -199,7 +198,10 @@ router.post("/apply", auth, async (req, res) => {
       return res.status(400).json({ error: "You have already used this coupon" });
     }
 
-    // Atomic increment to prevent race conditions
+    // Atomic increment with per-user limit enforced in filter
+    const perUserLimit = coupon.perUserLimit;
+    const userId = req.user._id;
+    const userFilterEntries = Array(perUserLimit).fill(userId);
     const updated = await Coupon.findOneAndUpdate(
       {
         _id: coupon._id,
@@ -207,10 +209,11 @@ router.post("/apply", auth, async (req, res) => {
         startDate: { $lte: new Date() },
         endDate: { $gte: new Date() },
         $or: [{ usageLimit: null }, { $expr: { $lt: ["$usageCount", "$usageLimit"] } }],
+        "usedBy.userId": { $not: { $all: userFilterEntries } },
       },
       {
         $inc: { usageCount: 1 },
-        $push: { usedBy: { userId: req.user._id, orderId: orderId || null } },
+        $push: { usedBy: { userId, orderId: orderId || null } },
       },
       { new: true }
     );
@@ -222,6 +225,35 @@ router.post("/apply", auth, async (req, res) => {
     res.json({ message: "Coupon applied successfully", coupon: updated });
   } catch (err) {
     res.status(500).json({ error: "Failed to apply coupon" });
+  }
+});
+
+// GET /api/coupons/stats/summary — coupon usage statistics (must be before /:id)
+router.get("/stats/summary", auth, async (req, res) => {
+  try {
+    const totalCoupons = await Coupon.countDocuments();
+    const activeCoupons = await Coupon.countDocuments({ isActive: true, endDate: { $gte: new Date() } });
+    const expiredCoupons = await Coupon.countDocuments({ endDate: { $lt: new Date() } });
+
+    const coupons = await Coupon.find();
+    const totalRedemptions = coupons.reduce((sum, c) => sum + c.usageCount, 0);
+    const totalDiscountGiven = coupons.reduce((sum, c) => {
+      return sum + c.usedBy.length * (c.discountType === "percentage" ? 0 : c.discountValue);
+    }, 0);
+
+    res.json({
+      totalCoupons,
+      activeCoupons,
+      expiredCoupons,
+      totalRedemptions,
+      estimatedDiscountGiven: totalDiscountGiven,
+      topCoupons: coupons
+        .sort((a, b) => b.usageCount - a.usageCount)
+        .slice(0, 5)
+        .map((c) => ({ code: c.code, usageCount: c.usageCount, discountType: c.discountType })),
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch coupon stats" });
   }
 });
 
@@ -278,35 +310,6 @@ router.delete("/:id", auth, async (req, res) => {
     res.json({ message: "Coupon deactivated" });
   } catch (err) {
     res.status(500).json({ error: "Failed to deactivate coupon" });
-  }
-});
-
-// GET /api/coupons/stats/summary — coupon usage statistics
-router.get("/stats/summary", auth, async (req, res) => {
-  try {
-    const totalCoupons = await Coupon.countDocuments();
-    const activeCoupons = await Coupon.countDocuments({ isActive: true, endDate: { $gte: new Date() } });
-    const expiredCoupons = await Coupon.countDocuments({ endDate: { $lt: new Date() } });
-
-    const coupons = await Coupon.find();
-    const totalRedemptions = coupons.reduce((sum, c) => sum + c.usageCount, 0);
-    const totalDiscountGiven = coupons.reduce((sum, c) => {
-      return sum + c.usedBy.length * (c.discountType === "percentage" ? 0 : c.discountValue);
-    }, 0);
-
-    res.json({
-      totalCoupons,
-      activeCoupons,
-      expiredCoupons,
-      totalRedemptions,
-      estimatedDiscountGiven: totalDiscountGiven,
-      topCoupons: coupons
-        .sort((a, b) => b.usageCount - a.usageCount)
-        .slice(0, 5)
-        .map((c) => ({ code: c.code, usageCount: c.usageCount, discountType: c.discountType })),
-    });
-  } catch (err) {
-    res.status(500).json({ error: "Failed to fetch coupon stats" });
   }
 });
 
