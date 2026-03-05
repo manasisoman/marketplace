@@ -36,6 +36,12 @@ function Navbar({ view, setView, cartCount, searchQuery, setSearchQuery }) {
           Analytics
         </button>
         <button
+          className={`nav-btn ${view === "wishlists" ? "active" : ""}`}
+          onClick={() => setView("wishlists")}
+        >
+          Wishlists
+        </button>
+        <button
           className={`nav-btn ${view === "messages" ? "active" : ""}`}
           onClick={() => setView("messages")}
         >

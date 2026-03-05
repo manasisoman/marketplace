@@ -29,17 +29,15 @@ const Category = require("./models/Category");
 
 // Import route files
 const analyticsRouter = require("./routes/analytics");
+const conversationsRouter = require("./routes/conversations");
+const messagesRouter = require("./routes/messages");
+const wishlistsRouter = require("./routes/wishlists");
 
 // Register route files
 app.use("/api/analytics", analyticsRouter);
-
-// Import route files
-const conversationsRouter = require("./routes/conversations");
-const messagesRouter = require("./routes/messages");
-
-// Register route files
 app.use("/api/conversations", conversationsRouter);
 app.use("/api/messages", messagesRouter);
+app.use("/api/wishlists", wishlistsRouter);
 
 // ─────────────────────────────────────────────
 // ROOT
