@@ -111,7 +111,7 @@ function RefundRequest({ order, onRequestRefund, onProcessRefund, isSeller }) {
               max={order.totalAmount}
               step="0.01"
               value={refundAmount}
-              onChange={(e) => setRefundAmount(parseFloat(e.target.value))}
+              onChange={(e) => setRefundAmount(parseFloat(e.target.value) || 0)}
             />
           </div>
           <div className="form-actions">
