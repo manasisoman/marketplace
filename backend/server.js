@@ -38,12 +38,27 @@ app.get("/", (req, res) => {
 // PRODUCT ENDPOINTS
 // ─────────────────────────────────────────────
 
-// ENDPOINT 2: GET all products
-// Example: GET http://localhost:5000/products
+// ENDPOINT 2: GET all products (with optional pagination)
+// Example: GET http://localhost:5000/products?page=1&limit=20
 app.get("/products", async (req, res) => {
   try {
-    const products = await Product.find().sort({ createdAt: -1 }); // newest first
-    res.json(products);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const total = await Product.countDocuments();
+    const products = await Product.find()
+      .sort({ createdAt: -1 }) // newest first
+      .skip(skip)
+      .limit(limit);
+
+    res.json({
+      products,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch products" });
   }
