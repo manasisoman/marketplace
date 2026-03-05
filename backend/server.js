@@ -38,17 +38,29 @@ app.get("/", (req, res) => {
 // PRODUCT ENDPOINTS
 // ─────────────────────────────────────────────
 
-// ENDPOINT 2: GET all products (with optional pagination)
-// Example: GET http://localhost:5000/products?page=1&limit=20
+// ENDPOINT 2: GET all products (with optional pagination and sorting)
+// Example: GET http://localhost:5000/products?page=1&limit=20&sort=price_asc
+// Supported sort values: price_asc, price_desc, name_asc, name_desc, newest (default), oldest
 app.get("/products", async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
     const skip = (page - 1) * limit;
 
+    const sortOptions = {
+      price_asc: { price: 1 },
+      price_desc: { price: -1 },
+      name_asc: { name: 1 },
+      name_desc: { name: -1 },
+      newest: { createdAt: -1 },
+      oldest: { createdAt: 1 },
+    };
+    const sortKey = req.query.sort || "newest";
+    const sortOrder = Object.prototype.hasOwnProperty.call(sortOptions, sortKey) ? sortOptions[sortKey] : sortOptions.newest;
+
     const total = await Product.countDocuments();
     const products = await Product.find()
-      .sort({ createdAt: -1 }) // newest first
+      .sort(sortOrder)
       .skip(skip)
       .limit(limit);
 
@@ -58,6 +70,7 @@ app.get("/products", async (req, res) => {
       limit,
       total,
       totalPages: Math.ceil(total / limit),
+      sort: sortKey,
     });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch products" });
