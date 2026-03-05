@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import StarRating from "./StarRating";
 import ReviewList from "./ReviewList";
 import ReviewForm from "./ReviewForm";
@@ -14,6 +14,11 @@ function ProductDetail({ product, onAddToCart, onDelete, onEdit, onBack }) {
   const [category, setCategory] = useState(product.category || "General");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [reviewRefreshKey, setReviewRefreshKey] = useState(0);
+
+  const handleReviewSubmitted = useCallback(() => {
+    setReviewRefreshKey((k) => k + 1);
+  }, []);
 
   const imageUrl = product.image || `https://placehold.co/600x400/e8f0fe/4285f4?text=${encodeURIComponent(product.name)}`;
 
@@ -200,9 +205,9 @@ function ProductDetail({ product, onAddToCart, onDelete, onEdit, onBack }) {
         <ReviewForm
           productId={product._id}
           currentUserId={null}
-          onReviewSubmitted={() => {}}
+          onReviewSubmitted={handleReviewSubmitted}
         />
-        <ReviewList productId={product._id} currentUserId={null} />
+        <ReviewList key={reviewRefreshKey} productId={product._id} currentUserId={null} />
       </div>
     </div>
   );

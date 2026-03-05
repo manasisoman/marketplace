@@ -75,6 +75,7 @@ function ReviewList({ productId, currentUserId }) {
                 <HelpfulButton
                   reviewId={review._id}
                   initialCount={review.helpful}
+                  initialVoted={review.helpfulVoters?.includes(currentUserId)}
                   currentUserId={currentUserId}
                 />
               </div>

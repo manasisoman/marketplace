@@ -3,9 +3,9 @@ import axios from "axios";
 
 const API = "";
 
-function HelpfulButton({ reviewId, initialCount, currentUserId }) {
+function HelpfulButton({ reviewId, initialCount, initialVoted, currentUserId }) {
   const [count, setCount] = useState(initialCount || 0);
-  const [voted, setVoted] = useState(false);
+  const [voted, setVoted] = useState(initialVoted || false);
   const [loading, setLoading] = useState(false);
 
   const handleToggle = async () => {
