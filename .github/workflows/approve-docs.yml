@@ -49,6 +49,11 @@ jobs:
              - Links to all updated Notion pages
              - Links to any newly created Notion pages (with parent location noted)
              - Summary of changes applied
+          4. After successfully applying all changes and posting the confirmation
+             comment, close the GitHub Issue (if #__PR_OR_ISSUE_NUMBER__ is an
+             Issue, not a PR). Use the GitHub API or CLI to close it with a
+             comment like: "Closing — all documentation changes have been applied."
+             Do NOT close PRs, only Issues.
 
           **Skills to reference:**
           - .agents/skills/notion-doc-sync/SKILL.md — for Notion page creation policy and sync process
