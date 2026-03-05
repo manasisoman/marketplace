@@ -25,6 +25,14 @@ const Product = require("./models/Product");
 const Cart = require("./models/Cart");
 const Favorite = require("./models/Favorite");
 
+// Import route files
+const conversationsRouter = require("./routes/conversations");
+const messagesRouter = require("./routes/messages");
+
+// Register route files
+app.use("/api/conversations", conversationsRouter);
+app.use("/api/messages", messagesRouter);
+
 // ─────────────────────────────────────────────
 // ROOT
 // ─────────────────────────────────────────────
