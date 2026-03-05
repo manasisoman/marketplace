@@ -1,8 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import CouponInput from "./CouponInput";
 
 function Cart({ items, total, onRemove, onUpdateQuantity, onBack, currentUserId }) {
   const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const prevTotalRef = useRef(total);
+
+  // Reset applied coupon when cart total changes (items added/removed/quantity changed)
+  useEffect(() => {
+    if (prevTotalRef.current !== total && appliedCoupon) {
+      setAppliedCoupon(null);
+    }
+    prevTotalRef.current = total;
+  }, [total, appliedCoupon]);
+
   const finalTotal = appliedCoupon ? appliedCoupon.newTotal : total;
   if (items.length === 0) {
     return (

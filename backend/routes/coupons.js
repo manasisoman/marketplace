@@ -2,8 +2,6 @@ const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/auth");
 const Coupon = require("../models/Coupon");
-const Product = require("../models/Product");
-const Cart = require("../models/Cart");
 
 // POST /api/coupons — create a new coupon (seller/admin)
 router.post("/", auth, async (req, res) => {
@@ -125,21 +123,25 @@ router.post("/validate", auth, async (req, res) => {
 
     // Filter by applicable categories/products if specified
     if (cartItems && cartItems.length > 0) {
+      let eligibleItems = cartItems;
+
       if (coupon.applicableCategories.length > 0) {
-        const eligibleItems = cartItems.filter((item) =>
+        eligibleItems = eligibleItems.filter((item) =>
           coupon.applicableCategories.includes(item.category)
         );
-        eligibleAmount = eligibleItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      }
+
+      if (coupon.applicableProducts.length > 0) {
+        const applicable = coupon.applicableProducts.map((id) => id.toString());
+        eligibleItems = eligibleItems.filter((item) => applicable.includes(item.productId));
       }
 
       if (coupon.excludedProducts.length > 0) {
         const excluded = coupon.excludedProducts.map((id) => id.toString());
-        const baseItems = coupon.applicableCategories.length > 0
-          ? cartItems.filter((item) => coupon.applicableCategories.includes(item.category))
-          : cartItems;
-        const filteredItems = baseItems.filter((item) => !excluded.includes(item.productId));
-        eligibleAmount = filteredItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        eligibleItems = eligibleItems.filter((item) => !excluded.includes(item.productId));
       }
+
+      eligibleAmount = eligibleItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
     }
 
     switch (coupon.discountType) {
@@ -198,10 +200,8 @@ router.post("/apply", auth, async (req, res) => {
       return res.status(400).json({ error: "You have already used this coupon" });
     }
 
-    // Atomic increment with per-user limit enforced in filter
-    const perUserLimit = coupon.perUserLimit;
+    // Atomic increment with all validity conditions in filter
     const userId = req.user._id;
-    const userFilterEntries = Array(perUserLimit).fill(userId);
     const updated = await Coupon.findOneAndUpdate(
       {
         _id: coupon._id,
@@ -209,7 +209,6 @@ router.post("/apply", auth, async (req, res) => {
         startDate: { $lte: new Date() },
         endDate: { $gte: new Date() },
         $or: [{ usageLimit: null }, { $expr: { $lt: ["$usageCount", "$usageLimit"] } }],
-        "usedBy.userId": { $not: { $all: userFilterEntries } },
       },
       {
         $inc: { usageCount: 1 },
