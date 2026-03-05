@@ -187,14 +187,14 @@ const seedProducts = [
     category: "Food",
   },
 
-  // ── Home & Garden ─────────────────────────────────────────────
+  // ── Home and Garden ──────────────────────────────────────────
   {
     name: "Commercial Robot Vacuum — Scheduled Cleaning",
     price: 799.00,
     description:
       "Commercial-grade robot vacuum with 3-hour battery life and 3,000 sqft coverage per charge. App-controlled scheduling, automatic charging dock, HEPA filter, and LiDAR mapping.",
     image: "https://picsum.photos/seed/vacuum21/400/300",
-    category: "Home & Garden",
+    category: "Home and Garden",
   },
   {
     name: "Office Plant Bundle — 6 Low-Maintenance Plants",
@@ -202,7 +202,7 @@ const seedProducts = [
     description:
       "Curated set of 6 desk and shelf plants (snake plant, pothos, ZZ plant, succulents). Ships in 4\" grow pots with care cards. Thrives under office fluorescent lighting.",
     image: "https://picsum.photos/seed/plants22/400/300",
-    category: "Home & Garden",
+    category: "Home and Garden",
   },
 
   // ── Sports ────────────────────────────────────────────────────
