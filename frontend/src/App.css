@@ -955,6 +955,98 @@ body {
   border-top: 1px solid var(--border);
 }
 
+/* ─── Recently Viewed ────────────────────────────────────────── */
+.recently-viewed-section {
+  margin-bottom: 1.75rem;
+}
+
+.recently-viewed-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.recently-viewed-header h2 {
+  font-size: 1.3rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.recently-viewed-grid {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.recently-viewed-card {
+  flex: 0 0 180px;
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  scroll-snap-align: start;
+  position: relative;
+}
+
+.recently-viewed-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.recently-viewed-card:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.recently-viewed-image {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  background: #f0f4ff;
+}
+
+.recently-viewed-category {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.4rem;
+  background: rgba(66, 133, 244, 0.85);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: 50px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.recently-viewed-info {
+  padding: 0.6rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.recently-viewed-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recently-viewed-price {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
 /* ─── Responsive ──────────────────────────────────────────────── */
 @media (max-width: 600px) {
   .navbar {
