@@ -44,15 +44,31 @@ When a PR is merged to main:
 
 ## Phase 2: Applying Documentation Updates
 
-When approved to apply documentation changes:
-1. Read the approved classification and proposed changes
-2. Fetch the current content of the target Notion page(s)
-3. Apply the updates following the doc-standards skill conventions
-4. If creating a new page, follow the Notion Page Creation Policy above
-5. Post a confirmation comment with links to the updated/created Notion pages
+Phase 2 is triggered in one of two ways depending on the classification outcome:
+
+### Auto-apply (no new pages needed)
+When the classification determines that only existing Notion pages need updating
+(no new pages required), Phase 2 runs automatically in the same Devin session as
+Phase 1. After posting the classification comment:
+1. Immediately proceed to fetch the current content of the target Notion page(s)
+2. Apply the updates following the doc-standards skill conventions
+3. Post a follow-up comment on the PR confirming the changes were applied,
+   with links to the updated Notion pages
+
+### Manual approval (new pages recommended)
+When the classification recommends creating new Notion pages, Phase 2 requires
+manual approval because new pages affect the documentation structure:
+1. The classification comment includes a callout:
+   "⚠️ Recommending new Notion page: <title> — <reason>"
+2. The comment ends with a CTA:
+   "To approve and apply these changes, comment `/approve-docs` on this PR."
+3. When a reviewer comments `/approve-docs`, the `approve-docs.yml` workflow
+   triggers a new Devin session to apply the changes
+4. Devin reads the classification from the PR comments, applies all proposed
+   changes (including new page creation), and posts a confirmation comment
 
 ## Slack Approval Monitor
 
 Monitor the designated Slack channel for approval signals on documentation changes.
-When a reviewer approves changes in the GitHub Issue, proceed with applying the
-documentation updates to Notion.
+When a reviewer approves changes in the GitHub Issue or PR, proceed with applying
+the documentation updates to Notion.

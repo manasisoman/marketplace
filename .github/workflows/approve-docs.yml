@@ -19,20 +19,25 @@ jobs:
       - name: Trigger Devin for Phase 2 Apply
         env:
           DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          PR_OR_ISSUE_NUMBER: ${{ github.event.issue.number }}
           COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
         run: |
           PROMPT_TEMPLATE=$(cat <<'PROMPT_EOF'
           ## Phase 2: Apply Approved Documentation Changes
 
-          A reviewer has approved the proposed documentation changes.
+          A reviewer has approved the proposed documentation changes by
+          commenting `/approve-docs`.
           Your task is to apply these changes to Notion.
 
-          **Issue:** #__ISSUE_NUMBER__
+          **PR / Issue:** #__PR_OR_ISSUE_NUMBER__
           **Approved by:** __COMMENT_AUTHOR__
 
           **Instructions:**
-          1. Read the GitHub Issue body to understand the approved documentation changes
+          1. Read the PR or Issue (both the description and comments) at
+             #__PR_OR_ISSUE_NUMBER__ to find the classification comment
+             that proposed the documentation changes. The classification
+             comment contains the feature area, target Notion pages, and
+             summary of proposed changes.
           2. For each proposed change:
              a. Fetch the current content of the target Notion page
              b. Apply the updates following doc-standards skill conventions
@@ -40,7 +45,7 @@ jobs:
                 notion-doc-sync skill if creating new pages. Use your judgment
                 per the policy criteria — create pages when the policy says to,
                 and prefer updating existing pages when appropriate.
-          3. Post a confirmation comment on the Issue with:
+          3. Post a confirmation comment on #__PR_OR_ISSUE_NUMBER__ with:
              - Links to all updated Notion pages
              - Links to any newly created Notion pages (with parent location noted)
              - Summary of changes applied
@@ -54,9 +59,9 @@ jobs:
 
           PAYLOAD=$(jq -n \
             --arg template "$PROMPT_TEMPLATE" \
-            --arg issue_number "$ISSUE_NUMBER" \
+            --arg pr_or_issue_number "$PR_OR_ISSUE_NUMBER" \
             --arg comment_author "$COMMENT_AUTHOR" \
-            '{prompt: ($template | gsub("__ISSUE_NUMBER__"; $issue_number) | gsub("__COMMENT_AUTHOR__"; $comment_author))}')
+            '{prompt: ($template | gsub("__PR_OR_ISSUE_NUMBER__"; $pr_or_issue_number) | gsub("__COMMENT_AUTHOR__"; $comment_author))}')
 
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://api.devin.ai/v1/sessions" \
             -H "Authorization: Bearer ${DEVIN_API_KEY}" \

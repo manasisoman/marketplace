@@ -22,10 +22,11 @@ jobs:
           MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
         run: |
           PROMPT_TEMPLATE=$(cat <<'PROMPT_EOF'
-          ## Phase 1: Real-Time PR Classification
+          ## Phase 1 + Phase 2: Classify and Apply Documentation Updates
 
-          A PR has been merged to main. Your task is to classify the changes and
-          propose documentation updates.
+          A PR has been merged to main. Your task is to classify the changes,
+          propose documentation updates, and — if no new Notion pages are needed —
+          apply the updates automatically.
 
           **PR Details:**
           - PR #__PR_NUMBER__: __PR_TITLE__
@@ -33,6 +34,8 @@ jobs:
           - Merge commit: __MERGE_SHA__
 
           **Instructions:**
+
+          ### Step 1: Classify (Phase 1)
           1. Read the PR diff to understand what changed
           2. Derive the feature area by analyzing the files changed (use the
              app-architecture skill's self-derivation approach — do NOT rely on
@@ -47,8 +50,30 @@ jobs:
              - Summary of proposed documentation changes
              - If recommending a new page, include the rationale
 
+          ### Step 2: Apply or Request Approval (Phase 2)
+          After posting the classification comment, decide the next step based on
+          the Notion Page Creation Policy:
+
+          **If NO new pages are needed** (only updating existing pages):
+          - Proceed immediately to apply the documentation changes to Notion.
+          - For each proposed change:
+            a. Fetch the current content of the target Notion page
+            b. Apply the updates following doc-standards skill conventions
+          - Post a follow-up comment on the PR confirming the changes were applied,
+            with links to the updated Notion pages.
+
+          **If new pages ARE recommended** (review required):
+          - Do NOT apply changes yet.
+          - Include this callout in your classification comment:
+            "⚠️ Recommending new Notion page: <title> — <reason>"
+          - Add a clear CTA at the end of the comment:
+            "To approve and apply these changes (including new page creation),
+            comment `/approve-docs` on this PR."
+          - Stop and wait for approval.
+
           **Skills to reference:**
           - .agents/skills/notion-doc-sync/SKILL.md — for Notion page creation policy
+          - .agents/skills/doc-standards/SKILL.md — for documentation formatting standards
           - .agents/skills/app-architecture/SKILL.md — for how to derive architecture
           PROMPT_EOF
           )
