@@ -143,6 +143,7 @@ function App() {
         name: product.name,
         price: product.price,
         image: product.image,
+        category: product.category || "",
         quantity: 1,
       });
       fetchCart();

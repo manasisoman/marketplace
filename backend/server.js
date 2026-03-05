@@ -262,7 +262,7 @@ app.get("/cart", async (req, res) => {
 // Example: POST http://localhost:5000/cart  with { productId, name, price, image, quantity }
 app.post("/cart", async (req, res) => {
   try {
-    const { productId, name, price, image, quantity = 1 } = req.body;
+    const { productId, name, price, image, category, quantity = 1 } = req.body;
     if (!productId || !name || !price) {
       return res.status(400).json({ error: "productId, name, and price are required" });
     }
@@ -275,7 +275,7 @@ app.post("/cart", async (req, res) => {
       return res.json(existing);
     }
 
-    const item = new Cart({ productId, name, price, image, quantity });
+    const item = new Cart({ productId, name, price, image, category: category || "", quantity });
     await item.save();
     res.status(201).json(item);
   } catch (err) {
