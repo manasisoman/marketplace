@@ -50,7 +50,7 @@ router.post("/", auth, async (req, res) => {
       sku,
       variant: variant || {},
       quantity: quantity || 0,
-      lowStockThreshold: lowStockThreshold || 5,
+      lowStockThreshold: lowStockThreshold ?? 5,
       warehouseLocation: warehouseLocation || "",
       costPrice: costPrice || 0,
       weight: weight || 0,
@@ -189,13 +189,11 @@ router.post("/:id/release", auth, async (req, res) => {
       if (!exists) {
         return res.status(404).json({ error: "Inventory entry not found" });
       }
-      // If reserved < quantity, release what's available
-      const updated = await Inventory.findOneAndUpdate(
-        { _id: req.params.id },
-        { $set: { reserved: 0 } },
-        { new: true }
-      );
-      return res.json(updated);
+      return res.status(409).json({
+        error: "Release quantity exceeds reserved amount",
+        reserved: exists.reserved,
+        requested: quantity,
+      });
     }
 
     res.json(entry);
