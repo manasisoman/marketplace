@@ -38,9 +38,10 @@ app.get("/", (req, res) => {
 // PRODUCT ENDPOINTS
 // ─────────────────────────────────────────────
 
-// ENDPOINT 2: GET all products (with optional pagination and sorting)
-// Example: GET http://localhost:5000/products?page=1&limit=20&sort=price_asc
+// ENDPOINT 2: GET all products (with optional pagination, sorting, and category filter)
+// Example: GET http://localhost:5000/products?page=1&limit=20&sort=price_asc&category=Electronics
 // Supported sort values: price_asc, price_desc, name_asc, name_desc, newest (default), oldest
+// Category filter: case-insensitive exact match on the product's category field
 app.get("/products", async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -58,8 +59,14 @@ app.get("/products", async (req, res) => {
     const sortKey = req.query.sort || "newest";
     const sortOrder = Object.prototype.hasOwnProperty.call(sortOptions, sortKey) ? sortOptions[sortKey] : sortOptions.newest;
 
-    const total = await Product.countDocuments();
-    const products = await Product.find()
+    // Build filter — optionally filter by category (case-insensitive)
+    const filter = {};
+    if (req.query.category) {
+      filter.category = { $regex: new RegExp(`^${req.query.category.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, "i") };
+    }
+
+    const total = await Product.countDocuments(filter);
+    const products = await Product.find(filter)
       .sort(sortOrder)
       .skip(skip)
       .limit(limit);
@@ -71,6 +78,7 @@ app.get("/products", async (req, res) => {
       total,
       totalPages: Math.ceil(total / limit),
       sort: sortKey,
+      ...(req.query.category ? { category: req.query.category } : {}),
     });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch products" });
