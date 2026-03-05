@@ -73,6 +73,9 @@ When a reviewer comments `/approve-docs`:
 1. A new Devin session is triggered to apply the proposed documentation changes
 2. Devin reads the classification from the PR/Issue comments, applies all
    proposed changes, and posts a confirmation comment
+3. If the target is a GitHub Issue (not a PR), Devin closes the Issue after
+   successfully applying all changes, with a closing comment confirming
+   completion
 This can be used to expedite non-API changes that shouldn't wait for the weekly
 batch, or to trigger updates on weekly batch Issues after review.
 
