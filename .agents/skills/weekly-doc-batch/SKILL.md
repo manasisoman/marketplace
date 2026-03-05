@@ -123,13 +123,12 @@ read of the specific feature area — not a full architecture derivation.
 1. At the start of each weekly run, list all PRs merged to main since the last batch run
    and derive a lightweight feature-to-file mapping from the PR diffs
    (see PR Grouping Rules above — do NOT perform a full architecture derivation)
-2. List all PRs merged to main since the last batch run
-3. For each PR, gather Slack context using the Slack Context Gathering rules above
-4. For each PR, gather Linear ticket context using the Linear Ticket Context
+2. For each PR, gather Slack context using the Slack Context Gathering rules above
+3. For each PR, gather Linear ticket context using the Linear Ticket Context
    Gathering rules above
-5. Group PRs by feature area using the derived mapping
-6. For each group, create a GitHub Issue proposing the documentation updates
-7. Include Slack context, Linear ticket context, PR summaries, and recommended
+4. Group PRs by feature area using the derived mapping
+5. For each group, create a GitHub Issue proposing the documentation updates
+6. Include Slack context, Linear ticket context, PR summaries, and recommended
    Notion changes in each Issue. Format the Linear context as a
    **"Customer Context"** section:
    ```
