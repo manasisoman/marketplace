@@ -56,26 +56,45 @@ jobs:
              - If recommending a new page, include the rationale
 
           ### Step 2: Apply or Defer (Phase 2)
-          After posting the classification comment, decide the next step based on
-          the type of change:
+          After posting the classification comment, decide the next step. A single
+          PR may contain BOTH API and non-API changes — handle each type separately:
 
-          **If the PR contains API endpoint changes** (auto-apply):
-          - Proceed immediately to apply the documentation changes to Notion.
-          - For each proposed change:
+          **For API endpoint changes within the PR** (auto-apply):
+          - Auto-apply ONLY the API endpoint documentation (e.g., new/modified
+            routes, query parameters, response shapes, middleware, and directly
+            related API Reference page updates including endpoint-specific data
+            model tables).
+          - For each API doc change:
             a. Fetch the current content of the target Notion page
             b. Apply the updates following doc-standards skill conventions
           - If the Notion Page Creation Policy calls for a new page, create it
             following the policy guidelines.
-          - Post a follow-up comment on the PR confirming the changes were applied,
-            with links to the updated/created Notion pages.
+          - Post a follow-up comment on the PR confirming which API doc changes
+            were applied, with links to the updated/created Notion pages.
 
-          **If the PR does NOT contain API endpoint changes** (defer to weekly batch):
-          - Do NOT apply changes to Notion.
-          - End the classification comment with a note:
-            "Non-API change — documentation updates will be addressed in the
-            next weekly batch run."
-          - Stop here. The weekly-doc-batch process will pick up this PR and
-            handle the documentation updates with full Slack context gathering.
+          **For non-API changes within the PR** (file GitHub Issues):
+          - Do NOT apply non-API documentation to Notion directly. Non-API changes
+            include: PRD feature stories, functional requirements, TDD model schemas,
+            TDD architecture sections, frontend component documentation, and any
+            other changes that are not API endpoint documentation.
+          - Instead, create GitHub Issues for the non-API documentation, grouped by
+            feature area. Each Issue should contain:
+            a. Title: "Doc Update — [Feature Name]: [Brief description]"
+            b. The proposed Notion content (fully drafted per doc-standards templates)
+            c. Target Notion page (existing page URL or "New page under [parent]")
+            d. A note: "Comment `/approve-docs` to apply these changes to Notion."
+          - Include a summary in the PR comment listing the GitHub Issues created
+            for non-API changes.
+
+          **If the PR contains ONLY non-API changes** (no API endpoints at all):
+          - Do NOT apply any changes to Notion.
+          - Create GitHub Issues for the non-API documentation changes, grouped
+            by feature area, following the same format as above (title, drafted
+            content, target Notion page, `/approve-docs` note).
+          - End the classification comment with a note listing the Issues created:
+            "Non-API change — GitHub Issues filed for review. Comment
+            `/approve-docs` on each to apply. The weekly-doc-batch process may
+            also gather additional Slack context for these changes."
 
           **Skills to reference:**
           - .agents/skills/notion-doc-sync/SKILL.md — for Notion page creation policy
