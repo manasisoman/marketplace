@@ -47,25 +47,43 @@ When a PR is merged to main:
 Phase 2 is triggered differently depending on the type of change identified
 during classification:
 
-### Auto-apply (API endpoint changes)
+### Auto-apply (API endpoint changes only)
 When the PR contains API endpoint changes (new/modified routes, query parameters,
-response shapes, middleware in backend route files), Phase 2 runs automatically
-in the same Devin session as Phase 1. After posting the classification comment:
+response shapes, middleware in backend route files), auto-apply **only the API
+endpoint documentation** in the same Devin session as Phase 1. After posting the
+classification comment:
 1. Immediately proceed to fetch the current content of the target Notion page(s)
-2. Apply the updates following the doc-standards skill conventions
+2. Apply **only** the API endpoint updates (e.g., API Reference sections, endpoint
+   descriptions, request/response shapes, endpoint-specific data model tables)
+   following the doc-standards skill conventions
 3. If the Notion Page Creation Policy calls for a new page, create it
-4. Post a follow-up comment on the PR confirming the changes were applied,
+4. Post a follow-up comment on the PR confirming which API changes were applied,
    with links to the updated/created Notion pages
 
-### Deferred to weekly batch (non-API changes)
-When the PR contains non-API changes (frontend/UI, customer experience, config,
-tooling, etc.), Phase 2 is NOT triggered in real time. Instead:
-1. The classification comment ends with a note:
-   "Non-API change — documentation updates will be addressed in the next
-   weekly batch run."
-2. The weekly-doc-batch process picks up this PR along with other merged PRs,
-   gathers Slack context, groups related PRs, and proposes documentation
-   updates via GitHub Issues for reviewer approval.
+### Deferred non-API changes (file GitHub Issues)
+When the PR contains non-API changes (PRD feature stories, functional requirements,
+TDD model schemas, TDD architecture sections, frontend/UI component documentation,
+customer experience, config, tooling, etc.), those changes are **never** auto-applied
+to Notion — even if the same PR also contains API endpoint changes. Instead:
+1. Create GitHub Issues for the non-API documentation changes, grouped by feature
+   area. Each Issue should contain:
+   - Title: "Doc Update — [Feature Name]: [Brief description]"
+   - The proposed Notion content (fully drafted per doc-standards templates)
+   - Target Notion page (existing page URL or "New page under [parent]")
+   - A note: "Comment `/approve-docs` to apply these changes to Notion."
+2. Include a summary in the PR comment listing the GitHub Issues created.
+3. The weekly-doc-batch process may also pick up these PRs to gather additional
+   Slack context and group related changes.
+
+### Mixed PRs (both API and non-API changes)
+A single PR often contains both API and non-API changes (e.g., a new feature PR
+that adds routes, models, PRD requirements, and frontend components). In this case:
+1. **Split** the documentation updates into API and non-API portions
+2. **Auto-apply** only the API endpoint documentation to Notion
+3. **File GitHub Issues** for all non-API documentation (PRD, TDD, frontend, etc.)
+4. Post a PR comment that clearly lists:
+   - What was auto-applied to Notion (API docs only)
+   - Links to the GitHub Issues created for non-API docs pending review
 
 ### Manual approval via `/approve-docs`
 The `approve-docs.yml` workflow provides a manual override for any PR or Issue.
@@ -73,6 +91,9 @@ When a reviewer comments `/approve-docs`:
 1. A new Devin session is triggered to apply the proposed documentation changes
 2. Devin reads the classification from the PR/Issue comments, applies all
    proposed changes, and posts a confirmation comment
+3. If the target is a GitHub Issue (not a PR), Devin closes the Issue after
+   successfully applying all changes, with a closing comment confirming
+   completion
 This can be used to expedite non-API changes that shouldn't wait for the weekly
 batch, or to trigger updates on weekly batch Issues after review.
 

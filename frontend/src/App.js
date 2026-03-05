@@ -5,6 +5,13 @@ import ProductGrid from "./components/ProductGrid";
 import AddProductForm from "./components/AddProductForm";
 import Cart from "./components/Cart";
 import ProductDetail from "./components/ProductDetail";
+import OrdersList from "./pages/OrdersList";
+import OrderDetail from "./pages/OrderDetail";
+import SellerDashboard from "./pages/SellerDashboard";
+import SearchFilters from "./components/SearchFilters";
+import Messages from "./pages/Messages";
+import CouponManager from "./pages/CouponManager";
+import Wishlists from "./pages/Wishlists";
 import "./App.css";
 
 const API = "";
@@ -14,11 +21,13 @@ function App() {
   const [products, setProducts] = useState([]);
   const [cartItems, setCartItems] = useState([]);
   const [cartTotal, setCartTotal] = useState(0);
-  const [view, setView] = useState("home"); // "home" | "sell" | "cart"
+  const [view, setView] = useState("home"); // "home" | "sell" | "cart" | "orders" | "order-detail" | "analytics" | "messages" | "coupons" | "wishlists"
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [favorites, setFavorites] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [filters, setFilters] = useState({});
 
   // Load products when app first opens
   useEffect(() => {
@@ -27,20 +36,27 @@ function App() {
     fetchFavorites();
   }, []);
 
-  // Re-run search whenever searchQuery changes
+  // Re-run search whenever searchQuery or filters change
   useEffect(() => {
     if (searchQuery.trim() === "") {
       fetchProducts();
     } else {
       searchProducts(searchQuery);
     }
-  }, [searchQuery]);
+  }, [searchQuery, filters]);
 
-  // USES ENDPOINT 2: GET all products
+  // USES ENDPOINT 2: GET all products with filters
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/products`);
+      const params = new URLSearchParams();
+      if (filters.category) params.set("category", filters.category);
+      if (filters.minPrice) params.set("minPrice", filters.minPrice);
+      if (filters.maxPrice) params.set("maxPrice", filters.maxPrice);
+      if (filters.sortBy) params.set("sortBy", filters.sortBy);
+      if (filters.order) params.set("order", filters.order);
+      const queryStr = params.toString();
+      const res = await axios.get(`${API}/products${queryStr ? "?" + queryStr : ""}`);
       setProducts(res.data.products);
     } catch (err) {
       console.error("Error fetching products:", err);
@@ -48,16 +64,27 @@ function App() {
     setLoading(false);
   };
 
-  // USES ENDPOINT 3: SEARCH products
+  // USES ENDPOINT 3: SEARCH products with filters
   const searchProducts = async (query) => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/products/search?q=${query}`);
-      setProducts(res.data);
+      const params = new URLSearchParams({ q: query });
+      if (filters.category) params.set("category", filters.category);
+      if (filters.minPrice) params.set("minPrice", filters.minPrice);
+      if (filters.maxPrice) params.set("maxPrice", filters.maxPrice);
+      if (filters.sortBy) params.set("sortBy", filters.sortBy);
+      if (filters.order) params.set("order", filters.order);
+      const res = await axios.get(`${API}/products/search?${params.toString()}`);
+      setProducts(res.data.products);
     } catch (err) {
       console.error("Search error:", err);
     }
     setLoading(false);
+  };
+
+  // Handle filter changes from SearchFilters component
+  const handleFilterChange = (newFilters) => {
+    setFilters(newFilters);
   };
 
   // USES ENDPOINT 5: CREATE product
@@ -115,6 +142,7 @@ function App() {
         name: product.name,
         price: product.price,
         image: product.image,
+        category: product.category || "",
         quantity: 1,
       });
       fetchCart();
@@ -192,6 +220,9 @@ function App() {
 
       <main className="main-content">
         {view === "home" && (
+          <SearchFilters onFilterChange={handleFilterChange} />
+        )}
+        {view === "home" && (
           <ProductGrid
             products={products}
             loading={loading}
@@ -223,7 +254,36 @@ function App() {
             onRemove={removeFromCart}
             onUpdateQuantity={updateCartQuantity}
             onBack={() => setView("home")}
+            currentUserId={null}
           />
+        )}
+        {view === "orders" && (
+          <OrdersList
+            currentUserId={null}
+            onViewOrder={(id) => {
+              setSelectedOrderId(id);
+              setView("order-detail");
+            }}
+          />
+        )}
+        {view === "order-detail" && selectedOrderId && (
+          <OrderDetail
+            orderId={selectedOrderId}
+            currentUserId={null}
+            onBack={() => setView("orders")}
+          />
+        )}
+        {view === "analytics" && (
+          <SellerDashboard currentUserId={null} />
+        )}
+        {view === "messages" && (
+          <Messages currentUserId={null} />
+        )}
+        {view === "coupons" && (
+          <CouponManager currentUserId={null} />
+        )}
+        {view === "wishlists" && (
+          <Wishlists currentUserId={null} />
         )}
       </main>
     </div>

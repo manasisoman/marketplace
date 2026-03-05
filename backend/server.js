@@ -9,7 +9,7 @@ const app = express();
 const corsOptions = {
   origin: "http://localhost:3000",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type"],
+  allowedHeaders: ["Content-Type", "x-user-id"],
 };
 app.use(cors(corsOptions));
 app.use(express.json());
@@ -24,6 +24,28 @@ mongoose
 const Product = require("./models/Product");
 const Cart = require("./models/Cart");
 const Favorite = require("./models/Favorite");
+const ProductView = require("./models/ProductView");
+const Category = require("./models/Category");
+
+// Import route files
+const reviewsRouter = require("./routes/reviews");
+const ordersRouter = require("./routes/orders");
+const analyticsRouter = require("./routes/analytics");
+const conversationsRouter = require("./routes/conversations");
+const messagesRouter = require("./routes/messages");
+const couponsRouter = require("./routes/coupons");
+const inventoryRouter = require("./routes/inventory");
+const wishlistsRouter = require("./routes/wishlists");
+
+// Register route files
+app.use("/api", reviewsRouter);
+app.use("/api/orders", ordersRouter);
+app.use("/api/analytics", analyticsRouter);
+app.use("/api/conversations", conversationsRouter);
+app.use("/api/messages", messagesRouter);
+app.use("/api/coupons", couponsRouter);
+app.use("/api/inventory", inventoryRouter);
+app.use("/api/wishlists", wishlistsRouter);
 
 // ─────────────────────────────────────────────
 // ROOT
@@ -38,16 +60,28 @@ app.get("/", (req, res) => {
 // PRODUCT ENDPOINTS
 // ─────────────────────────────────────────────
 
-// ENDPOINT 2: GET all products (with optional pagination and sorting)
-// Example: GET http://localhost:5000/products?page=1&limit=20&sort=price_asc
-// Supported sort values: price_asc, price_desc, name_asc, name_desc, newest (default), oldest
+// ENDPOINT 2: GET all products (with optional pagination, sorting, category, price, stock, and brand filters)
+// Example: GET http://localhost:5000/products?page=1&limit=20&sortBy=price&order=asc&category=Electronics&minPrice=10&maxPrice=100&inStock=true&brand=Nike
+// Supported sortBy values: price, createdAt, name, averageRating, totalStock
+// Order: asc or desc (default: desc)
+// Category filter: case-insensitive exact match on the product's category field
+// Price filters: minPrice and maxPrice for price range filtering
+// Stock filter: inStock=true to show only products with totalStock > 0
+// Brand filter: case-insensitive match on brand field
 app.get("/products", async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
     const skip = (page - 1) * limit;
 
-    const sortOptions = {
+    // Determine sort field and order
+    const allowedSortFields = ["price", "createdAt", "name", "averageRating", "totalStock"];
+    const sortBy = allowedSortFields.includes(req.query.sortBy) ? req.query.sortBy : "createdAt";
+    const order = req.query.order === "asc" ? 1 : -1;
+    const sortOrder = { [sortBy]: order };
+
+    // Also support legacy sort param for backward compatibility
+    const legacySortOptions = {
       price_asc: { price: 1 },
       price_desc: { price: -1 },
       name_asc: { name: 1 },
@@ -55,11 +89,88 @@ app.get("/products", async (req, res) => {
       newest: { createdAt: -1 },
       oldest: { createdAt: 1 },
     };
-    const sortKey = req.query.sort || "newest";
-    const sortOrder = Object.prototype.hasOwnProperty.call(sortOptions, sortKey) ? sortOptions[sortKey] : sortOptions.newest;
+    const finalSort = req.query.sort && Object.prototype.hasOwnProperty.call(legacySortOptions, req.query.sort)
+      ? legacySortOptions[req.query.sort]
+      : sortOrder;
 
-    const total = await Product.countDocuments();
-    const products = await Product.find()
+    // Build filter
+    const filter = {};
+    if (req.query.category) {
+      filter.category = { $regex: new RegExp(`^${req.query.category.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, "i") };
+    }
+    if (req.query.minPrice) {
+      filter.price = { ...filter.price, $gte: parseFloat(req.query.minPrice) };
+    }
+    if (req.query.maxPrice) {
+      filter.price = { ...filter.price, $lte: parseFloat(req.query.maxPrice) };
+    }
+    if (req.query.inStock === "true") {
+      filter.totalStock = { $gt: 0 };
+    }
+    if (req.query.brand) {
+      filter.brand = { $regex: new RegExp(`^${req.query.brand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, "i") };
+    }
+
+    const total = await Product.countDocuments(filter);
+    const products = await Product.find(filter)
+      .sort(finalSort)
+      .skip(skip)
+      .limit(limit);
+
+    res.json({
+      products,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      sortBy,
+      order: order === 1 ? "asc" : "desc",
+      ...(req.query.category ? { category: req.query.category } : {}),
+      ...(req.query.minPrice ? { minPrice: parseFloat(req.query.minPrice) } : {}),
+      ...(req.query.maxPrice ? { maxPrice: parseFloat(req.query.maxPrice) } : {}),
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch products" });
+  }
+});
+
+// ENDPOINT 3: SEARCH products by name or description with filters
+// Example: GET http://localhost:5000/products/search?q=shoes&category=Footwear&minPrice=20&maxPrice=200&sortBy=price&order=asc&page=1&limit=20
+// IMPORTANT: This MUST come before /products/:id or Express will treat "search" as an id
+app.get("/products/search", async (req, res) => {
+  try {
+    const query = req.query.q || "";
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    // Determine sort
+    const allowedSortFields = ["price", "createdAt", "name", "averageRating"];
+    const sortBy = allowedSortFields.includes(req.query.sortBy) ? req.query.sortBy : "createdAt";
+    const order = req.query.order === "asc" ? 1 : -1;
+    const sortOrder = { [sortBy]: order };
+
+    // Build filter with text search
+    const filter = {
+      $or: [
+        { name: { $regex: query, $options: "i" } },
+        { description: { $regex: query, $options: "i" } },
+      ],
+    };
+
+    // Apply category filter
+    if (req.query.category) {
+      filter.category = { $regex: new RegExp(`^${req.query.category.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, "i") };
+    }
+    // Apply price range filters
+    if (req.query.minPrice || req.query.maxPrice) {
+      filter.price = {};
+      if (req.query.minPrice) filter.price.$gte = parseFloat(req.query.minPrice);
+      if (req.query.maxPrice) filter.price.$lte = parseFloat(req.query.maxPrice);
+    }
+
+    const total = await Product.countDocuments(filter);
+    const products = await Product.find(filter)
       .sort(sortOrder)
       .skip(skip)
       .limit(limit);
@@ -70,26 +181,10 @@ app.get("/products", async (req, res) => {
       limit,
       total,
       totalPages: Math.ceil(total / limit),
-      sort: sortKey,
+      query: query,
+      sortBy,
+      order: order === 1 ? "asc" : "desc",
     });
-  } catch (err) {
-    res.status(500).json({ error: "Failed to fetch products" });
-  }
-});
-
-// ENDPOINT 3: SEARCH products by name or description
-// Example: GET http://localhost:5000/products/search?q=shoes
-// IMPORTANT: This MUST come before /products/:id or Express will treat "search" as an id
-app.get("/products/search", async (req, res) => {
-  try {
-    const query = req.query.q || "";
-    const products = await Product.find({
-      $or: [
-        { name: { $regex: query, $options: "i" } },        // case-insensitive name match
-        { description: { $regex: query, $options: "i" } }, // case-insensitive description match
-      ],
-    });
-    res.json(products);
   } catch (err) {
     res.status(500).json({ error: "Search failed" });
   }
@@ -97,10 +192,20 @@ app.get("/products/search", async (req, res) => {
 
 // ENDPOINT 4: GET a single product by its ID
 // Example: GET http://localhost:5000/products/64abc123...
+// Also tracks product views for analytics (fire-and-forget)
 app.get("/products/:id", async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ error: "Product not found" });
+
+    // Track product view (fire-and-forget — don't block the response)
+    ProductView.create({
+      productId: product._id,
+      userId: req.headers["x-user-id"] || null,
+      sessionId: req.headers["x-session-id"] || null,
+      referrer: req.headers.referer || null,
+    }).catch(() => {}); // silently ignore tracking errors
+
     res.json(product);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch product" });
@@ -111,11 +216,11 @@ app.get("/products/:id", async (req, res) => {
 // Example: POST http://localhost:5000/products  with JSON body
 app.post("/products", async (req, res) => {
   try {
-    const { name, price, description, image, category } = req.body;
+    const { name, price, description, image, category, brand, tags, availableSizes, availableColors, weightUnit } = req.body;
     if (!name || !price) {
       return res.status(400).json({ error: "Name and price are required" });
     }
-    const product = new Product({ name, price, description, image, category });
+    const product = new Product({ name, price, description, image, category, brand, tags, availableSizes, availableColors, weightUnit });
     await product.save();
     res.status(201).json(product);
   } catch (err) {
@@ -127,9 +232,11 @@ app.post("/products", async (req, res) => {
 // Example: PUT http://localhost:5000/products/64abc123...  with updated JSON body
 app.put("/products/:id", async (req, res) => {
   try {
+    // Only allow updating user-editable fields (not server-managed fields like averageRating, reviewCount, hasVariants, variantCount, totalStock, availableSizes, availableColors)
+    const { name, price, description, image, category, brand, tags, weightUnit } = req.body;
     const product = await Product.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      { name, price, description, image, category, brand, tags, weightUnit },
       { new: true, runValidators: true } // return the updated doc
     );
     if (!product) return res.status(404).json({ error: "Product not found" });
@@ -171,7 +278,7 @@ app.get("/cart", async (req, res) => {
 // Example: POST http://localhost:5000/cart  with { productId, name, price, image, quantity }
 app.post("/cart", async (req, res) => {
   try {
-    const { productId, name, price, image, quantity = 1 } = req.body;
+    const { productId, name, price, image, category, quantity = 1 } = req.body;
     if (!productId || !name || !price) {
       return res.status(400).json({ error: "productId, name, and price are required" });
     }
@@ -184,7 +291,7 @@ app.post("/cart", async (req, res) => {
       return res.json(existing);
     }
 
-    const item = new Cart({ productId, name, price, image, quantity });
+    const item = new Cart({ productId, name, price, image, category: category || "", quantity });
     await item.save();
     res.status(201).json(item);
   } catch (err) {
@@ -293,6 +400,38 @@ app.delete("/favorites/:id", async (req, res) => {
     res.json({ message: "Favorite removed" });
   } catch (err) {
     res.status(500).json({ error: "Failed to remove favorite" });
+  }
+});
+
+// ─────────────────────────────────────────────
+// CATEGORY ENDPOINTS
+// ─────────────────────────────────────────────
+
+// GET all categories
+app.get("/categories", async (req, res) => {
+  try {
+    const categories = await Category.find().sort({ name: 1 });
+    res.json(categories);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch categories" });
+  }
+});
+
+// POST: create a new category
+app.post("/categories", async (req, res) => {
+  try {
+    const { name, slug, description } = req.body;
+    if (!name || !slug) {
+      return res.status(400).json({ error: "Name and slug are required" });
+    }
+    const category = new Category({ name, slug, description });
+    await category.save();
+    res.status(201).json(category);
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ error: "Category already exists" });
+    }
+    res.status(500).json({ error: "Failed to create category" });
   }
 });
 

@@ -1,9 +1,16 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import VariantSelector from "./VariantSelector";
+import InventoryManager from "./InventoryManager";
+import StarRating from "./StarRating";
+import ReviewList from "./ReviewList";
+import ReviewForm from "./ReviewForm";
 
 const CATEGORIES = ["General", "Electronics", "Clothing", "Books", "Home & Garden", "Sports", "Toys", "Food"];
 
 function ProductDetail({ product, onAddToCart, onDelete, onEdit, onBack }) {
   const [editing, setEditing] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState(null);
+  const [showInventory, setShowInventory] = useState(false);
   const [name, setName] = useState(product.name);
   const [price, setPrice] = useState(product.price);
   const [description, setDescription] = useState(product.description || "");
@@ -11,6 +18,11 @@ function ProductDetail({ product, onAddToCart, onDelete, onEdit, onBack }) {
   const [category, setCategory] = useState(product.category || "General");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [reviewRefreshKey, setReviewRefreshKey] = useState(0);
+
+  const handleReviewSubmitted = useCallback(() => {
+    setReviewRefreshKey((k) => k + 1);
+  }, []);
 
   const imageUrl = product.image || `https://placehold.co/600x400/e8f0fe/4285f4?text=${encodeURIComponent(product.name)}`;
 
@@ -73,13 +85,50 @@ function ProductDetail({ product, onAddToCart, onDelete, onEdit, onBack }) {
 
           <h1>{product.name}</h1>
 
+          {product.reviewCount > 0 && (
+            <div className="product-rating-summary">
+              <StarRating rating={product.averageRating} size="medium" />
+              <span className="rating-text">
+                {product.averageRating.toFixed(1)} ({product.reviewCount} review{product.reviewCount !== 1 ? "s" : ""})
+              </span>
+            </div>
+          )}
+
           <div className="product-detail-price">
             ${Number(product.price).toFixed(2)}
           </div>
 
+          {product.brand && (
+            <div className="product-detail-brand">Brand: {product.brand}</div>
+          )}
+
+          {product.tags?.length > 0 && (
+            <div className="product-detail-tags">
+              {product.tags.map((tag, i) => (
+                <span key={i} className="tag">{tag}</span>
+              ))}
+            </div>
+          )}
+
           <p className="product-detail-description">
             {product.description || "No description provided."}
           </p>
+
+          {/* Variant selector for products with inventory */}
+          <VariantSelector productId={product._id} onVariantSelect={setSelectedVariant} />
+
+          {selectedVariant && (
+            <div className="selected-variant-info">
+              <span>SKU: {selectedVariant.sku}</span>
+              {selectedVariant.variant?.size && <span>Size: {selectedVariant.variant.size}</span>}
+              {selectedVariant.variant?.color && <span>Color: {selectedVariant.variant.color}</span>}
+              <span>Available: {selectedVariant.available}</span>
+            </div>
+          )}
+
+          {product.totalStock !== undefined && product.totalStock === 0 && (
+            <div className="out-of-stock-banner">Out of Stock</div>
+          )}
 
           {product.createdAt && (
             <div className="product-detail-meta">
@@ -109,6 +158,13 @@ function ProductDetail({ product, onAddToCart, onDelete, onEdit, onBack }) {
               {editing ? "Cancel Edit" : "Edit"}
             </button>
           </div>
+
+          <button
+            className="btn btn-secondary"
+            onClick={() => setShowInventory(!showInventory)}
+          >
+            {showInventory ? "Hide Inventory" : "Manage Inventory"}
+          </button>
 
           {editing && (
             <div className="product-detail-edit">
@@ -181,6 +237,20 @@ function ProductDetail({ product, onAddToCart, onDelete, onEdit, onBack }) {
             </div>
           )}
         </div>
+      </div>
+
+      {showInventory && (
+        <InventoryManager productId={product._id} currentUserId={null} />
+      )}
+
+      {/* Reviews section */}
+      <div className="product-reviews-section">
+        <ReviewForm
+          productId={product._id}
+          currentUserId={null}
+          onReviewSubmitted={handleReviewSubmitted}
+        />
+        <ReviewList key={reviewRefreshKey} productId={product._id} currentUserId={null} />
       </div>
     </div>
   );

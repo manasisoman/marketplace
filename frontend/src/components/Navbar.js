@@ -30,6 +30,36 @@ function Navbar({ view, setView, cartCount, searchQuery, setSearchQuery }) {
           + Sell
         </button>
         <button
+          className={`nav-btn ${view === "orders" ? "active" : ""}`}
+          onClick={() => setView("orders")}
+        >
+          Orders
+        </button>
+        <button
+          className={`nav-btn ${view === "analytics" ? "active" : ""}`}
+          onClick={() => setView("analytics")}
+        >
+          Analytics
+        </button>
+        <button
+          className={`nav-btn ${view === "coupons" ? "active" : ""}`}
+          onClick={() => setView("coupons")}
+        >
+          Coupons
+        </button>
+        <button
+          className={`nav-btn ${view === "wishlists" ? "active" : ""}`}
+          onClick={() => setView("wishlists")}
+        >
+          Wishlists
+        </button>
+        <button
+          className={`nav-btn ${view === "messages" ? "active" : ""}`}
+          onClick={() => setView("messages")}
+        >
+          Messages
+        </button>
+        <button
           className={`nav-btn cart-btn ${view === "cart" ? "active" : ""}`}
           onClick={() => setView("cart")}
         >
