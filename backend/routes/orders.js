@@ -226,12 +226,12 @@ router.put("/:id/refund", auth, async (req, res) => {
 
     if (action === "approve") {
       order.refundStatus = "approved";
-      order.refundAmount = amount || order.totalAmount;
+      order.refundAmount = amount != null ? amount : order.totalAmount;
       order.status = "refunded";
       order.statusHistory.push({
         status: "refunded",
         timestamp: new Date(),
-        note: `Refund approved for $${(amount || order.totalAmount).toFixed(2)}`,
+        note: `Refund approved for $${(amount != null ? amount : order.totalAmount).toFixed(2)}`,
       });
     } else {
       order.refundStatus = "rejected";
