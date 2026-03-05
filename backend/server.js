@@ -32,6 +32,14 @@ const analyticsRouter = require("./routes/analytics");
 // Register route files
 app.use("/api/analytics", analyticsRouter);
 
+// Import route files
+const conversationsRouter = require("./routes/conversations");
+const messagesRouter = require("./routes/messages");
+
+// Register route files
+app.use("/api/conversations", conversationsRouter);
+app.use("/api/messages", messagesRouter);
+
 // ─────────────────────────────────────────────
 // ROOT
 // ─────────────────────────────────────────────
