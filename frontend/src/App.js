@@ -7,6 +7,7 @@ import Cart from "./components/Cart";
 import ProductDetail from "./components/ProductDetail";
 import OrdersList from "./pages/OrdersList";
 import OrderDetail from "./pages/OrderDetail";
+import SellerDashboard from "./pages/SellerDashboard";
 import SearchFilters from "./components/SearchFilters";
 import Messages from "./pages/Messages";
 import "./App.css";
@@ -18,7 +19,7 @@ function App() {
   const [products, setProducts] = useState([]);
   const [cartItems, setCartItems] = useState([]);
   const [cartTotal, setCartTotal] = useState(0);
-  const [view, setView] = useState("home"); // "home" | "sell" | "cart" | "orders" | "order-detail" | "messages"
+  const [view, setView] = useState("home"); // "home" | "sell" | "cart" | "orders" | "order-detail" | "analytics" | "messages"
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -267,6 +268,9 @@ function App() {
             currentUserId={null}
             onBack={() => setView("orders")}
           />
+        )}
+        {view === "analytics" && (
+          <SellerDashboard currentUserId={null} />
         )}
         {view === "messages" && (
           <Messages currentUserId={null} />
