@@ -1,5 +1,5 @@
 function PriceAlertBadge({ priceAtAdd, currentPrice }) {
-  if (!priceAtAdd || !currentPrice) return null;
+  if (priceAtAdd == null || currentPrice == null) return null;
 
   const diff = currentPrice - priceAtAdd;
   const percent = ((diff / priceAtAdd) * 100).toFixed(1);

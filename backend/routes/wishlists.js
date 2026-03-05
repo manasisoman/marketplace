@@ -182,11 +182,13 @@ router.post("/:id/items", auth, async (req, res) => {
     await wishlist.save();
 
     // Create price alert if requested
+    // Scope alert to the wishlist owner (consistent with PUT update-item route)
+    const alertOwnerId = wishlist.userId;
     if (alertOnPriceDrop && targetPrice != null) {
       await PriceAlert.findOneAndUpdate(
-        { userId: req.user._id, productId, isActive: true },
+        { userId: alertOwnerId, productId, isActive: true },
         {
-          userId: req.user._id,
+          userId: alertOwnerId,
           productId,
           targetPrice,
           originalPrice: product.price,
