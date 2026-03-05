@@ -56,7 +56,7 @@ app.get("/products", async (req, res) => {
       oldest: { createdAt: 1 },
     };
     const sortKey = req.query.sort || "newest";
-    const sortOrder = sortOptions[sortKey] || sortOptions.newest;
+    const sortOrder = Object.prototype.hasOwnProperty.call(sortOptions, sortKey) ? sortOptions[sortKey] : sortOptions.newest;
 
     const total = await Product.countDocuments();
     const products = await Product.find()
