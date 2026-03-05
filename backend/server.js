@@ -33,6 +33,7 @@ const ordersRouter = require("./routes/orders");
 const analyticsRouter = require("./routes/analytics");
 const conversationsRouter = require("./routes/conversations");
 const messagesRouter = require("./routes/messages");
+const wishlistsRouter = require("./routes/wishlists");
 
 // Register route files
 app.use("/api", reviewsRouter);
@@ -40,6 +41,7 @@ app.use("/api/orders", ordersRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/conversations", conversationsRouter);
 app.use("/api/messages", messagesRouter);
+app.use("/api/wishlists", wishlistsRouter);
 
 // ─────────────────────────────────────────────
 // ROOT
