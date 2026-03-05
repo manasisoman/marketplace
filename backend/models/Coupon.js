@@ -49,7 +49,6 @@ couponSchema.virtual("isValid").get(function () {
 couponSchema.set("toJSON", { virtuals: true });
 couponSchema.set("toObject", { virtuals: true });
 
-couponSchema.index({ code: 1 });
 couponSchema.index({ endDate: 1 });
 couponSchema.index({ isActive: 1 });
 

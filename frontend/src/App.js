@@ -11,7 +11,6 @@ import SellerDashboard from "./pages/SellerDashboard";
 import SearchFilters from "./components/SearchFilters";
 import Messages from "./pages/Messages";
 import CouponManager from "./pages/CouponManager";
-import CouponInput from "./components/CouponInput";
 import Wishlists from "./pages/Wishlists";
 import "./App.css";
 
@@ -23,7 +22,6 @@ function App() {
   const [cartItems, setCartItems] = useState([]);
   const [cartTotal, setCartTotal] = useState(0);
   const [view, setView] = useState("home"); // "home" | "sell" | "cart" | "orders" | "order-detail" | "analytics" | "messages" | "coupons" | "wishlists"
-  const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -256,6 +254,7 @@ function App() {
             onRemove={removeFromCart}
             onUpdateQuantity={updateCartQuantity}
             onBack={() => setView("home")}
+            currentUserId={null}
           />
         )}
         {view === "orders" && (
