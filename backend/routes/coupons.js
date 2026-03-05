@@ -135,7 +135,10 @@ router.post("/validate", auth, async (req, res) => {
 
       if (coupon.excludedProducts.length > 0) {
         const excluded = coupon.excludedProducts.map((id) => id.toString());
-        const filteredItems = cartItems.filter((item) => !excluded.includes(item.productId));
+        const baseItems = coupon.applicableCategories.length > 0
+          ? cartItems.filter((item) => coupon.applicableCategories.includes(item.category))
+          : cartItems;
+        const filteredItems = baseItems.filter((item) => !excluded.includes(item.productId));
         eligibleAmount = filteredItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
       }
     }
@@ -182,20 +185,41 @@ router.post("/apply", auth, async (req, res) => {
       return res.status(400).json({ error: "Coupon code is required" });
     }
 
+    // Atomic apply with per-user limit check
     const coupon = await Coupon.findOne({ code: code.toUpperCase().trim() });
     if (!coupon || !coupon.isValid) {
       return res.status(400).json({ error: "Invalid or expired coupon" });
     }
 
-    // Record usage
-    coupon.usageCount += 1;
-    coupon.usedBy.push({
-      userId: req.user._id,
-      orderId: orderId || null,
-    });
+    // Check per-user limit before applying
+    const userUsageCount = coupon.usedBy.filter(
+      (u) => u.userId.toString() === req.user._id.toString()
+    ).length;
+    if (userUsageCount >= coupon.perUserLimit) {
+      return res.status(400).json({ error: "You have already used this coupon" });
+    }
 
-    await coupon.save();
-    res.json({ message: "Coupon applied successfully", coupon });
+    // Atomic increment to prevent race conditions
+    const updated = await Coupon.findOneAndUpdate(
+      {
+        _id: coupon._id,
+        isActive: true,
+        startDate: { $lte: new Date() },
+        endDate: { $gte: new Date() },
+        $or: [{ usageLimit: null }, { $expr: { $lt: ["$usageCount", "$usageLimit"] } }],
+      },
+      {
+        $inc: { usageCount: 1 },
+        $push: { usedBy: { userId: req.user._id, orderId: orderId || null } },
+      },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(400).json({ error: "Coupon is no longer valid or usage limit reached" });
+    }
+
+    res.json({ message: "Coupon applied successfully", coupon: updated });
   } catch (err) {
     res.status(500).json({ error: "Failed to apply coupon" });
   }
