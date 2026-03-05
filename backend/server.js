@@ -215,6 +215,18 @@ app.get("/favorites", async (req, res) => {
   }
 });
 
+// GET: check if a product is favorited by productId
+// Example: GET http://localhost:5000/favorites/product/64abc123...
+app.get("/favorites/product/:productId", async (req, res) => {
+  try {
+    const fav = await Favorite.findOne({ productId: req.params.productId });
+    if (!fav) return res.status(404).json({ isFavorited: false });
+    res.json({ isFavorited: true, favorite: fav });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to check favorite status" });
+  }
+});
+
 // POST: add a product to favorites
 app.post("/favorites", async (req, res) => {
   try {
