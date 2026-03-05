@@ -1,0 +1,150 @@
+name: Documentation Catchup
+
+on:
+  workflow_dispatch:
+    inputs:
+      slack_context:
+        description: 'Gather Slack context for non-API gaps (true/false)'
+        required: false
+        default: 'true'
+  issue_comment:
+    types: [created]
+
+jobs:
+  catchup-via-comment:
+    if: >-
+      github.event_name == 'issue_comment' &&
+      contains(github.event.comment.body, '/catch-up-docs') &&
+      (github.event.comment.author_association == 'OWNER' ||
+       github.event.comment.author_association == 'MEMBER' ||
+       github.event.comment.author_association == 'COLLABORATOR')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Trigger Devin for Doc Catchup
+        env:
+          DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+          TRIGGER_ISSUE: ${{ github.event.issue.number }}
+          TRIGGER_AUTHOR: ${{ github.event.comment.user.login }}
+        run: |
+          PROMPT_TEMPLATE=$(cat <<'PROMPT_EOF'
+          ## Documentation Catchup — Full Repository Sync
+
+          A team member has requested a full documentation catchup by commenting
+          `/catch-up-docs` on Issue #__TRIGGER_ISSUE__.
+
+          **Triggered by:** __TRIGGER_AUTHOR__
+
+          **Instructions:**
+          Follow the doc-catchup skill (`.agents/skills/doc-catchup/SKILL.md`) end to end:
+
+          1. **Step 1 — Full Codebase Audit**: Derive the complete application architecture
+             and feature inventory using the app-architecture skill.
+          2. **Step 2 — Gap Analysis**: Compare features against existing Notion documentation.
+             Post the gap report as a new GitHub Issue.
+          3. **Step 3 — Batch Doc Generation**:
+             - Auto-apply all API endpoint gaps to Notion immediately.
+             - File GitHub Issues for non-API gaps with drafted content, awaiting `/approve-docs`.
+             - Post a summary comment on the gap report Issue.
+
+          Gather Slack context for non-API gaps using the weekly-doc-batch skill's
+          Slack Context Gathering rules.
+
+          **Skills to reference:**
+          - .agents/skills/doc-catchup/SKILL.md — primary skill for this workflow
+          - .agents/skills/app-architecture/SKILL.md — codebase derivation
+          - .agents/skills/notion-doc-sync/SKILL.md — Notion page creation policy
+          - .agents/skills/doc-standards/SKILL.md — documentation formatting standards
+          - .agents/skills/weekly-doc-batch/SKILL.md — Slack context gathering
+          PROMPT_EOF
+          )
+
+          PAYLOAD=$(jq -n \
+            --arg template "$PROMPT_TEMPLATE" \
+            --arg trigger_issue "$TRIGGER_ISSUE" \
+            --arg trigger_author "$TRIGGER_AUTHOR" \
+            '{prompt: ($template | gsub("__TRIGGER_ISSUE__"; $trigger_issue) | gsub("__TRIGGER_AUTHOR__"; $trigger_author))}')
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://api.devin.ai/v1/sessions" \
+            -H "Authorization: Bearer ${DEVIN_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 400 ]; then
+            echo "Error triggering Devin session: HTTP $HTTP_CODE"
+            echo "$BODY"
+            exit 1
+          fi
+
+          SESSION_URL=$(echo "$BODY" | jq -r '.url // empty')
+          echo "Devin session created: $SESSION_URL"
+
+  catchup-via-dispatch:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Trigger Devin for Doc Catchup
+        env:
+          DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+          GATHER_SLACK: ${{ github.event.inputs.slack_context }}
+        run: |
+          PROMPT_TEMPLATE=$(cat <<'PROMPT_EOF'
+          ## Documentation Catchup — Full Repository Sync
+
+          A full documentation catchup has been triggered via manual workflow dispatch.
+
+          **Instructions:**
+          Follow the doc-catchup skill (`.agents/skills/doc-catchup/SKILL.md`) end to end:
+
+          1. **Step 1 — Full Codebase Audit**: Derive the complete application architecture
+             and feature inventory using the app-architecture skill.
+          2. **Step 2 — Gap Analysis**: Compare features against existing Notion documentation.
+             Post the gap report as a new GitHub Issue.
+          3. **Step 3 — Batch Doc Generation**:
+             - Auto-apply all API endpoint gaps to Notion immediately.
+             - File GitHub Issues for non-API gaps with drafted content, awaiting `/approve-docs`.
+             - Post a summary comment on the gap report Issue.
+
+          **Slack context gathering:** __GATHER_SLACK__
+          If "true", gather Slack context for non-API gaps using the weekly-doc-batch
+          skill's Slack Context Gathering rules. If "false", skip Slack context and
+          draft documentation from code analysis only.
+
+          **Skills to reference:**
+          - .agents/skills/doc-catchup/SKILL.md — primary skill for this workflow
+          - .agents/skills/app-architecture/SKILL.md — codebase derivation
+          - .agents/skills/notion-doc-sync/SKILL.md — Notion page creation policy
+          - .agents/skills/doc-standards/SKILL.md — documentation formatting standards
+          - .agents/skills/weekly-doc-batch/SKILL.md — Slack context gathering
+          PROMPT_EOF
+          )
+
+          PAYLOAD=$(jq -n \
+            --arg template "$PROMPT_TEMPLATE" \
+            --arg gather_slack "$GATHER_SLACK" \
+            '{prompt: ($template | gsub("__GATHER_SLACK__"; $gather_slack))}')
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://api.devin.ai/v1/sessions" \
+            -H "Authorization: Bearer ${DEVIN_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 400 ]; then
+            echo "Error triggering Devin session: HTTP $HTTP_CODE"
+            echo "$BODY"
+            exit 1
+          fi
+
+          SESSION_URL=$(echo "$BODY" | jq -r '.url // empty')
+          echo "Devin session created: $SESSION_URL"
