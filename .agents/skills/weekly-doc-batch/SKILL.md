@@ -15,12 +15,13 @@ Do NOT limit yourself to only the channels listed above. Use your judgment to se
 additional Slack channels that may contain relevant context for the PR being processed:
 
 1. Look at the PR author — search channels where that author has been active recently
-2. Look at the Jira ticket (if found) — search for the ticket key across all accessible channels
+2. Look at the project tracker ticket (Linear or Jira, if found) — search for the
+   ticket key across all accessible channels
 3. Look at the feature area — if the PR is about payments, search for channels with
    "payment", "billing", "finance" in their names
 4. Look at recent threads — if a suggested channel contains a thread that references
    another channel, follow that lead
-5. Search broadly first (by PR title keywords or Jira key across all channels),
+5. Search broadly first (by PR title keywords or ticket key across all channels),
    then narrow down to the most relevant threads
 
 ### Guardrails
@@ -31,6 +32,50 @@ additional Slack channels that may contain relevant context for the PR being pro
   GitHub Issue so the team knows where the discussion happened
 - Cap at 5 channels per PR to avoid excessive searching. If you find relevant threads
   in more than 5 channels, prioritize by relevance and recency.
+
+## Linear Ticket Context Gathering
+
+For each merged PR in the batch, gather customer context from associated Linear tickets.
+
+**Requires** the `LINEAR_API_KEY` environment secret. If not available, skip this
+entire section and note in each GitHub Issue: "Linear context unavailable —
+LINEAR_API_KEY not configured."
+
+### Correlation strategy (per PR)
+
+Since the weekly batch already has the PR URL, correlation is more direct than in
+the doc-catchup skill. Apply these methods in order, stopping once a ticket is found:
+
+1. **PR attachment match (primary):** Query Linear for issues that have a GitHub
+   attachment whose URL matches the PR being processed. This is the most reliable
+   method and works when PRs are linked to tickets via Linear's GitHub integration
+   or manual attachment.
+2. **Branch name match (fallback):** Search Linear issue titles and descriptions
+   for the PR's branch name (e.g., `feature/messaging-system`).
+3. **PR title keyword search (last resort):** Search Linear issues by keywords
+   from the PR title. Only use results where the match is clearly about the same
+   feature — discard ambiguous matches.
+
+### Extraction
+
+For each correlated ticket, extract:
+- Ticket identifier and title (e.g., "MAR-10: Messaging/Chat System")
+- Customer names and quotes from the ticket description or comments
+- Pain points, feature requests, and use cases mentioned
+- Market sizing or business impact data if present
+- Priority and status of the ticket
+
+### Guardrails
+- Cap at 5 tickets per PR (weekly batches deal with individual PRs, so this is
+  tighter than the doc-catchup cap of 10 per feature)
+- If a ticket contains potentially sensitive customer data (email addresses, phone
+  numbers, account IDs), redact those fields and include only names, company names,
+  and general feedback. The human review gate provides a final check.
+- Do not include internal-only notes or comments marked as confidential
+- If the Linear API returns errors or rate-limits, log the error and continue
+  without Linear context rather than blocking the batch
+- If rate-limited (HTTP 429), back off exponentially (1s, 2s, 4s) up to 3 retries
+  per request, then skip and continue
 
 ## PR Grouping Rules
 
@@ -75,7 +120,33 @@ file to maintain.
 1. At the start of each weekly run, derive the app architecture and feature-to-file mapping
    (see app-architecture skill and PR Grouping Rules above)
 2. List all PRs merged to main since the last batch run
-3. For each PR, gather Slack context using the rules above
-4. Group PRs by feature area using the derived mapping
-5. For each group, create a GitHub Issue proposing the documentation updates
-6. Include Slack context, PR summaries, and recommended Notion changes in each Issue
+3. For each PR, gather Slack context using the Slack Context Gathering rules above
+4. For each PR, gather Linear ticket context using the Linear Ticket Context
+   Gathering rules above
+5. Group PRs by feature area using the derived mapping
+6. For each group, create a GitHub Issue proposing the documentation updates
+7. Include Slack context, Linear ticket context, PR summaries, and recommended
+   Notion changes in each Issue. Format the Linear context as a
+   **"Customer Context"** section:
+   ```
+   ## Customer Context (from Linear)
+
+   **Related tickets:** MAR-10, MAR-15
+
+   - **[Customer Name] at [Company]:** "[Quote or paraphrased feedback]"
+     _(from [ticket ID], [priority])_
+   - **Market impact:** [sizing data if available]
+   - **Business justification:** [summary of why this feature was built]
+   ```
+   When multiple PRs in a group have Linear context, merge the customer context
+   into a single section, deduplicating tickets that appear across multiple PRs.
+
+## Prerequisites
+
+- **LINEAR_API_KEY** — a Linear personal API key stored as an environment secret.
+  Required for Linear Ticket Context Gathering. Generate one at
+  https://linear.app/settings/api under "Personal API keys". If not available,
+  the skill will skip Linear context and note it in the output.
+- **Linear-GitHub integration** — for best results, PRs should be attached to
+  Linear tickets. The correlation strategy includes fallbacks for repos where
+  this isn't set up, but PR attachment matching is the most reliable method.
