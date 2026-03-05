@@ -1,9 +1,13 @@
 import { useState } from "react";
+import VariantSelector from "./VariantSelector";
+import InventoryManager from "./InventoryManager";
 
 const CATEGORIES = ["General", "Electronics", "Clothing", "Books", "Home & Garden", "Sports", "Toys", "Food"];
 
 function ProductDetail({ product, onAddToCart, onDelete, onEdit, onBack }) {
   const [editing, setEditing] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState(null);
+  const [showInventory, setShowInventory] = useState(false);
   const [name, setName] = useState(product.name);
   const [price, setPrice] = useState(product.price);
   const [description, setDescription] = useState(product.description || "");
@@ -77,9 +81,37 @@ function ProductDetail({ product, onAddToCart, onDelete, onEdit, onBack }) {
             ${Number(product.price).toFixed(2)}
           </div>
 
+          {product.brand && (
+            <div className="product-detail-brand">Brand: {product.brand}</div>
+          )}
+
+          {product.tags?.length > 0 && (
+            <div className="product-detail-tags">
+              {product.tags.map((tag, i) => (
+                <span key={i} className="tag">{tag}</span>
+              ))}
+            </div>
+          )}
+
           <p className="product-detail-description">
             {product.description || "No description provided."}
           </p>
+
+          {/* Variant selector for products with inventory */}
+          <VariantSelector productId={product._id} onVariantSelect={setSelectedVariant} />
+
+          {selectedVariant && (
+            <div className="selected-variant-info">
+              <span>SKU: {selectedVariant.sku}</span>
+              {selectedVariant.variant?.size && <span>Size: {selectedVariant.variant.size}</span>}
+              {selectedVariant.variant?.color && <span>Color: {selectedVariant.variant.color}</span>}
+              <span>Available: {selectedVariant.available}</span>
+            </div>
+          )}
+
+          {product.totalStock !== undefined && product.totalStock === 0 && (
+            <div className="out-of-stock-banner">Out of Stock</div>
+          )}
 
           {product.createdAt && (
             <div className="product-detail-meta">
@@ -109,6 +141,13 @@ function ProductDetail({ product, onAddToCart, onDelete, onEdit, onBack }) {
               {editing ? "Cancel Edit" : "Edit"}
             </button>
           </div>
+
+          <button
+            className="btn btn-secondary"
+            onClick={() => setShowInventory(!showInventory)}
+          >
+            {showInventory ? "Hide Inventory" : "Manage Inventory"}
+          </button>
 
           {editing && (
             <div className="product-detail-edit">
@@ -182,6 +221,10 @@ function ProductDetail({ product, onAddToCart, onDelete, onEdit, onBack }) {
           )}
         </div>
       </div>
+
+      {showInventory && (
+        <InventoryManager productId={product._id} currentUserId={null} />
+      )}
     </div>
   );
 }
