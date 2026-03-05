@@ -38,12 +38,27 @@ app.get("/", (req, res) => {
 // PRODUCT ENDPOINTS
 // ─────────────────────────────────────────────
 
-// ENDPOINT 2: GET all products
-// Example: GET http://localhost:5000/products
+// ENDPOINT 2: GET all products (with optional pagination)
+// Example: GET http://localhost:5000/products?page=1&limit=20
 app.get("/products", async (req, res) => {
   try {
-    const products = await Product.find().sort({ createdAt: -1 }); // newest first
-    res.json(products);
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const total = await Product.countDocuments();
+    const products = await Product.find()
+      .sort({ createdAt: -1 }) // newest first
+      .skip(skip)
+      .limit(limit);
+
+    res.json({
+      products,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch products" });
   }
@@ -189,7 +204,21 @@ app.put("/cart/:id", async (req, res) => {
   }
 });
 
-// ENDPOINT 11: REMOVE an item from the cart
+// ENDPOINT 11: CLEAR all items from the cart
+// Example: DELETE http://localhost:5000/cart
+app.delete("/cart", async (req, res) => {
+  try {
+    const result = await Cart.deleteMany({});
+    res.json({
+      message: "Cart cleared successfully",
+      deletedCount: result.deletedCount,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to clear cart" });
+  }
+});
+
+// ENDPOINT 12: REMOVE an item from the cart
 // Example: DELETE http://localhost:5000/cart/64abc123...
 app.delete("/cart/:id", async (req, res) => {
   try {
@@ -212,6 +241,18 @@ app.get("/favorites", async (req, res) => {
     res.json(favs);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch favorites" });
+  }
+});
+
+// GET: check if a product is favorited by productId
+// Example: GET http://localhost:5000/favorites/product/64abc123...
+app.get("/favorites/product/:productId", async (req, res) => {
+  try {
+    const fav = await Favorite.findOne({ productId: req.params.productId });
+    if (!fav) return res.status(404).json({ isFavorited: false });
+    res.json({ isFavorited: true, favorite: fav });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to check favorite status" });
   }
 });
 
