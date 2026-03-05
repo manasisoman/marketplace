@@ -9,7 +9,7 @@ const app = express();
 const corsOptions = {
   origin: "http://localhost:3000",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type"],
+  allowedHeaders: ["Content-Type", "x-user-id"],
 };
 app.use(cors(corsOptions));
 app.use(express.json());
@@ -24,6 +24,14 @@ mongoose
 const Product = require("./models/Product");
 const Cart = require("./models/Cart");
 const Favorite = require("./models/Favorite");
+
+// Import route files
+const conversationsRouter = require("./routes/conversations");
+const messagesRouter = require("./routes/messages");
+
+// Register route files
+app.use("/api/conversations", conversationsRouter);
+app.use("/api/messages", messagesRouter);
 
 // ─────────────────────────────────────────────
 // ROOT
