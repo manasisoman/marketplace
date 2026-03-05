@@ -174,13 +174,13 @@ router.post("/:id/items", auth, async (req, res) => {
       note: note || "",
       priceAtAdd: product.price,
       alertOnPriceDrop: alertOnPriceDrop || false,
-      targetPrice: targetPrice || null,
+      targetPrice: targetPrice != null ? targetPrice : null,
     });
 
     await wishlist.save();
 
     // Create price alert if requested
-    if (alertOnPriceDrop && targetPrice) {
+    if (alertOnPriceDrop && targetPrice != null) {
       await PriceAlert.findOneAndUpdate(
         { userId: req.user._id, productId, isActive: true },
         {
@@ -227,7 +227,7 @@ router.put("/:id/items/:productId", auth, async (req, res) => {
     await wishlist.save();
 
     // Update price alert
-    if (alertOnPriceDrop && targetPrice) {
+    if (alertOnPriceDrop && targetPrice != null) {
       const product = await Product.findById(req.params.productId);
       await PriceAlert.findOneAndUpdate(
         { userId: req.user._id, productId: req.params.productId, isActive: true },
@@ -274,15 +274,14 @@ router.delete("/:id/items/:productId", auth, async (req, res) => {
     wishlist.items.splice(itemIndex, 1);
     await wishlist.save();
 
-    // Deactivate price alerts only if product not in another wishlist with alerts
-    const otherWithAlert = await Wishlist.findOne({
-      userId: req.user._id,
-      _id: { $ne: req.params.id },
-      items: { $elemMatch: { productId: req.params.productId, alertOnPriceDrop: true } },
+    // Deactivate price alerts for this product — check ALL users' wishlists, not just requester
+    const anyWishlistWithAlert = await Wishlist.findOne({
+      "items": { $elemMatch: { productId: req.params.productId, alertOnPriceDrop: true } },
     });
-    if (!otherWithAlert) {
+    if (!anyWishlistWithAlert) {
+      // No wishlist anywhere has an active alert for this product — deactivate all alerts
       await PriceAlert.updateMany(
-        { userId: req.user._id, productId: req.params.productId },
+        { productId: req.params.productId },
         { isActive: false }
       );
     }
