@@ -189,7 +189,21 @@ app.put("/cart/:id", async (req, res) => {
   }
 });
 
-// ENDPOINT 11: REMOVE an item from the cart
+// ENDPOINT 11: CLEAR all items from the cart
+// Example: DELETE http://localhost:5000/cart
+app.delete("/cart", async (req, res) => {
+  try {
+    const result = await Cart.deleteMany({});
+    res.json({
+      message: "Cart cleared successfully",
+      deletedCount: result.deletedCount,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to clear cart" });
+  }
+});
+
+// ENDPOINT 12: REMOVE an item from the cart
 // Example: DELETE http://localhost:5000/cart/64abc123...
 app.delete("/cart/:id", async (req, res) => {
   try {
