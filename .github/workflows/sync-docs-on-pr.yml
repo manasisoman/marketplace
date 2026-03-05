@@ -21,16 +21,16 @@ jobs:
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
         run: |
-          PROMPT=$(cat <<PROMPT_EOF
+          PROMPT_TEMPLATE=$(cat <<'PROMPT_EOF'
           ## Phase 1: Real-Time PR Classification
 
           A PR has been merged to main. Your task is to classify the changes and
           propose documentation updates.
 
           **PR Details:**
-          - PR #${PR_NUMBER}: ${PR_TITLE}
-          - Author: ${PR_AUTHOR}
-          - Merge commit: ${MERGE_SHA}
+          - PR #__PR_NUMBER__: __PR_TITLE__
+          - Author: __PR_AUTHOR__
+          - Merge commit: __MERGE_SHA__
 
           **Instructions:**
           1. Read the PR diff to understand what changed
@@ -53,10 +53,18 @@ jobs:
           PROMPT_EOF
           )
 
+          PAYLOAD=$(jq -n \
+            --arg template "$PROMPT_TEMPLATE" \
+            --arg pr_number "$PR_NUMBER" \
+            --arg pr_title "$PR_TITLE" \
+            --arg pr_author "$PR_AUTHOR" \
+            --arg merge_sha "$MERGE_SHA" \
+            '{prompt: ($template | gsub("__PR_NUMBER__"; $pr_number) | gsub("__PR_TITLE__"; $pr_title) | gsub("__PR_AUTHOR__"; $pr_author) | gsub("__MERGE_SHA__"; $merge_sha))}')
+
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://api.devin.ai/v1/sessions" \
             -H "Authorization: Bearer ${DEVIN_API_KEY}" \
             -H "Content-Type: application/json" \
-            -d "$(jq -n --arg prompt "$PROMPT" '{prompt: $prompt}')")
+            -d "$PAYLOAD")
 
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
           BODY=$(echo "$RESPONSE" | sed '$d')

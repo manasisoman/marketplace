@@ -22,14 +22,14 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
         run: |
-          PROMPT=$(cat <<PROMPT_EOF
+          PROMPT_TEMPLATE=$(cat <<'PROMPT_EOF'
           ## Phase 2: Apply Approved Documentation Changes
 
           A reviewer has approved the proposed documentation changes.
           Your task is to apply these changes to Notion.
 
-          **Issue:** #${ISSUE_NUMBER}
-          **Approved by:** ${COMMENT_AUTHOR}
+          **Issue:** #__ISSUE_NUMBER__
+          **Approved by:** __COMMENT_AUTHOR__
 
           **Instructions:**
           1. Read the GitHub Issue body to understand the approved documentation changes
@@ -52,10 +52,16 @@ jobs:
           PROMPT_EOF
           )
 
+          PAYLOAD=$(jq -n \
+            --arg template "$PROMPT_TEMPLATE" \
+            --arg issue_number "$ISSUE_NUMBER" \
+            --arg comment_author "$COMMENT_AUTHOR" \
+            '{prompt: ($template | gsub("__ISSUE_NUMBER__"; $issue_number) | gsub("__COMMENT_AUTHOR__"; $comment_author))}')
+
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://api.devin.ai/v1/sessions" \
             -H "Authorization: Bearer ${DEVIN_API_KEY}" \
             -H "Content-Type: application/json" \
-            -d "$(jq -n --arg prompt "$PROMPT" '{prompt: $prompt}')")
+            -d "$PAYLOAD")
 
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
           BODY=$(echo "$RESPONSE" | sed '$d')
