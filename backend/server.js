@@ -24,15 +24,18 @@ mongoose
 const Product = require("./models/Product");
 const Cart = require("./models/Cart");
 const Favorite = require("./models/Favorite");
+const ProductView = require("./models/ProductView");
 const Category = require("./models/Category");
 
 // Import route files
 const reviewsRouter = require("./routes/reviews");
+const analyticsRouter = require("./routes/analytics");
 const conversationsRouter = require("./routes/conversations");
 const messagesRouter = require("./routes/messages");
 
 // Register route files
 app.use("/api", reviewsRouter);
+app.use("/api/analytics", analyticsRouter);
 app.use("/api/conversations", conversationsRouter);
 app.use("/api/messages", messagesRouter);
 
@@ -51,7 +54,7 @@ app.get("/", (req, res) => {
 
 // ENDPOINT 2: GET all products (with optional pagination, sorting, category, and price filters)
 // Example: GET http://localhost:5000/products?page=1&limit=20&sortBy=price&order=asc&category=Electronics&minPrice=10&maxPrice=100
-// Supported sortBy values: price, createdAt, name, rating
+// Supported sortBy values: price, createdAt, name, averageRating
 // Order: asc or desc (default: desc)
 // Category filter: case-insensitive exact match on the product's category field
 // Price filters: minPrice and maxPrice for price range filtering
@@ -62,7 +65,7 @@ app.get("/products", async (req, res) => {
     const skip = (page - 1) * limit;
 
     // Determine sort field and order
-    const allowedSortFields = ["price", "createdAt", "name", "rating"];
+    const allowedSortFields = ["price", "createdAt", "name", "averageRating"];
     const sortBy = allowedSortFields.includes(req.query.sortBy) ? req.query.sortBy : "createdAt";
     const order = req.query.order === "asc" ? 1 : -1;
     const sortOrder = { [sortBy]: order };
@@ -126,7 +129,7 @@ app.get("/products/search", async (req, res) => {
     const skip = (page - 1) * limit;
 
     // Determine sort
-    const allowedSortFields = ["price", "createdAt", "name", "rating"];
+    const allowedSortFields = ["price", "createdAt", "name", "averageRating"];
     const sortBy = allowedSortFields.includes(req.query.sortBy) ? req.query.sortBy : "createdAt";
     const order = req.query.order === "asc" ? 1 : -1;
     const sortOrder = { [sortBy]: order };
@@ -173,10 +176,20 @@ app.get("/products/search", async (req, res) => {
 
 // ENDPOINT 4: GET a single product by its ID
 // Example: GET http://localhost:5000/products/64abc123...
+// Also tracks product views for analytics (fire-and-forget)
 app.get("/products/:id", async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ error: "Product not found" });
+
+    // Track product view (fire-and-forget — don't block the response)
+    ProductView.create({
+      productId: product._id,
+      userId: req.headers["x-user-id"] || null,
+      sessionId: req.headers["x-session-id"] || null,
+      referrer: req.headers.referer || null,
+    }).catch(() => {}); // silently ignore tracking errors
+
     res.json(product);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch product" });
