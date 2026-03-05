@@ -28,18 +28,22 @@ const ProductView = require("./models/ProductView");
 const Category = require("./models/Category");
 
 // Import route files
+const reviewsRouter = require("./routes/reviews");
 const ordersRouter = require("./routes/orders");
 const analyticsRouter = require("./routes/analytics");
 const conversationsRouter = require("./routes/conversations");
 const messagesRouter = require("./routes/messages");
 const couponsRouter = require("./routes/coupons");
+const wishlistsRouter = require("./routes/wishlists");
 
 // Register route files
+app.use("/api", reviewsRouter);
 app.use("/api/orders", ordersRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/conversations", conversationsRouter);
 app.use("/api/messages", messagesRouter);
 app.use("/api/coupons", couponsRouter);
+app.use("/api/wishlists", wishlistsRouter);
 
 // ─────────────────────────────────────────────
 // ROOT
@@ -56,7 +60,7 @@ app.get("/", (req, res) => {
 
 // ENDPOINT 2: GET all products (with optional pagination, sorting, category, and price filters)
 // Example: GET http://localhost:5000/products?page=1&limit=20&sortBy=price&order=asc&category=Electronics&minPrice=10&maxPrice=100
-// Supported sortBy values: price, createdAt, name, rating
+// Supported sortBy values: price, createdAt, name, averageRating
 // Order: asc or desc (default: desc)
 // Category filter: case-insensitive exact match on the product's category field
 // Price filters: minPrice and maxPrice for price range filtering
@@ -67,7 +71,7 @@ app.get("/products", async (req, res) => {
     const skip = (page - 1) * limit;
 
     // Determine sort field and order
-    const allowedSortFields = ["price", "createdAt", "name", "rating"];
+    const allowedSortFields = ["price", "createdAt", "name", "averageRating"];
     const sortBy = allowedSortFields.includes(req.query.sortBy) ? req.query.sortBy : "createdAt";
     const order = req.query.order === "asc" ? 1 : -1;
     const sortOrder = { [sortBy]: order };
@@ -131,7 +135,7 @@ app.get("/products/search", async (req, res) => {
     const skip = (page - 1) * limit;
 
     // Determine sort
-    const allowedSortFields = ["price", "createdAt", "name", "rating"];
+    const allowedSortFields = ["price", "createdAt", "name", "averageRating"];
     const sortBy = allowedSortFields.includes(req.query.sortBy) ? req.query.sortBy : "createdAt";
     const order = req.query.order === "asc" ? 1 : -1;
     const sortOrder = { [sortBy]: order };
@@ -218,9 +222,11 @@ app.post("/products", async (req, res) => {
 // Example: PUT http://localhost:5000/products/64abc123...  with updated JSON body
 app.put("/products/:id", async (req, res) => {
   try {
+    // Only allow updating user-editable fields (not server-managed fields like averageRating, reviewCount)
+    const { name, price, description, image, category } = req.body;
     const product = await Product.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      { name, price, description, image, category },
       { new: true, runValidators: true } // return the updated doc
     );
     if (!product) return res.status(404).json({ error: "Product not found" });
