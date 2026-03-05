@@ -11,4 +11,7 @@ const productSchema = new mongoose.Schema(
   { timestamps: true } // adds createdAt and updatedAt automatically
 );
 
+// Text index for full-text search on name and description
+productSchema.index({ name: "text", description: "text" });
+
 module.exports = mongoose.model("Product", productSchema);
