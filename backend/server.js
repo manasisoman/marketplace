@@ -33,6 +33,7 @@ const ordersRouter = require("./routes/orders");
 const analyticsRouter = require("./routes/analytics");
 const conversationsRouter = require("./routes/conversations");
 const messagesRouter = require("./routes/messages");
+const couponsRouter = require("./routes/coupons");
 const inventoryRouter = require("./routes/inventory");
 const wishlistsRouter = require("./routes/wishlists");
 
@@ -42,6 +43,7 @@ app.use("/api/orders", ordersRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/conversations", conversationsRouter);
 app.use("/api/messages", messagesRouter);
+app.use("/api/coupons", couponsRouter);
 app.use("/api/inventory", inventoryRouter);
 app.use("/api/wishlists", wishlistsRouter);
 
@@ -276,7 +278,7 @@ app.get("/cart", async (req, res) => {
 // Example: POST http://localhost:5000/cart  with { productId, name, price, image, quantity }
 app.post("/cart", async (req, res) => {
   try {
-    const { productId, name, price, image, quantity = 1 } = req.body;
+    const { productId, name, price, image, category, quantity = 1 } = req.body;
     if (!productId || !name || !price) {
       return res.status(400).json({ error: "productId, name, and price are required" });
     }
@@ -289,7 +291,7 @@ app.post("/cart", async (req, res) => {
       return res.json(existing);
     }
 
-    const item = new Cart({ productId, name, price, image, quantity });
+    const item = new Cart({ productId, name, price, image, category: category || "", quantity });
     await item.save();
     res.status(201).json(item);
   } catch (err) {

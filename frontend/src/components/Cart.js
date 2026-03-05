@@ -1,4 +1,19 @@
-function Cart({ items, total, onRemove, onUpdateQuantity, onBack }) {
+import { useState, useEffect, useRef } from "react";
+import CouponInput from "./CouponInput";
+
+function Cart({ items, total, onRemove, onUpdateQuantity, onBack, currentUserId }) {
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const prevTotalRef = useRef(total);
+
+  // Reset applied coupon when cart total changes (items added/removed/quantity changed)
+  useEffect(() => {
+    if (prevTotalRef.current !== total && appliedCoupon) {
+      setAppliedCoupon(null);
+    }
+    prevTotalRef.current = total;
+  }, [total, appliedCoupon]);
+
+  const finalTotal = appliedCoupon ? appliedCoupon.newTotal : total;
   if (items.length === 0) {
     return (
       <div className="cart-container">
@@ -69,16 +84,48 @@ function Cart({ items, total, onRemove, onUpdateQuantity, onBack }) {
         })}
       </div>
 
+      <div className="cart-coupon-section">
+        <h3>Have a coupon code?</h3>
+        <CouponInput
+          cartTotal={total}
+          cartItems={items.map((item) => ({
+            productId: item.productId,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            category: item.category || "",
+          }))}
+          currentUserId={currentUserId}
+          onCouponApplied={setAppliedCoupon}
+        />
+      </div>
+
       <div className="cart-summary">
         <div className="cart-total">
-          <strong>Total:</strong>
+          <strong>Subtotal:</strong>
           <span>${total.toFixed(2)}</span>
+        </div>
+        {appliedCoupon && (
+          <div className="cart-discount">
+            <strong>Discount ({appliedCoupon.coupon.code}):</strong>
+            <span className="discount-amount">-${appliedCoupon.discount.toFixed(2)}</span>
+          </div>
+        )}
+        {appliedCoupon && appliedCoupon.freeShipping && (
+          <div className="cart-free-shipping">
+            <strong>Shipping:</strong>
+            <span>FREE</span>
+          </div>
+        )}
+        <div className="cart-final-total">
+          <strong>Total:</strong>
+          <span>${finalTotal.toFixed(2)}</span>
         </div>
         <button
           className="btn btn-primary btn-lg"
           onClick={() => alert("Checkout coming soon! This is where you would integrate a payment processor like Stripe.")}
         >
-          Checkout — ${total.toFixed(2)}
+          Checkout — ${finalTotal.toFixed(2)}
         </button>
       </div>
     </div>

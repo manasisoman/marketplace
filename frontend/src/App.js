@@ -10,6 +10,7 @@ import OrderDetail from "./pages/OrderDetail";
 import SellerDashboard from "./pages/SellerDashboard";
 import SearchFilters from "./components/SearchFilters";
 import Messages from "./pages/Messages";
+import CouponManager from "./pages/CouponManager";
 import Wishlists from "./pages/Wishlists";
 import "./App.css";
 
@@ -20,7 +21,7 @@ function App() {
   const [products, setProducts] = useState([]);
   const [cartItems, setCartItems] = useState([]);
   const [cartTotal, setCartTotal] = useState(0);
-  const [view, setView] = useState("home"); // "home" | "sell" | "cart" | "orders" | "order-detail" | "analytics" | "messages" | "wishlists"
+  const [view, setView] = useState("home"); // "home" | "sell" | "cart" | "orders" | "order-detail" | "analytics" | "messages" | "coupons" | "wishlists"
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -141,6 +142,7 @@ function App() {
         name: product.name,
         price: product.price,
         image: product.image,
+        category: product.category || "",
         quantity: 1,
       });
       fetchCart();
@@ -252,6 +254,7 @@ function App() {
             onRemove={removeFromCart}
             onUpdateQuantity={updateCartQuantity}
             onBack={() => setView("home")}
+            currentUserId={null}
           />
         )}
         {view === "orders" && (
@@ -275,6 +278,9 @@ function App() {
         )}
         {view === "messages" && (
           <Messages currentUserId={null} />
+        )}
+        {view === "coupons" && (
+          <CouponManager currentUserId={null} />
         )}
         {view === "wishlists" && (
           <Wishlists currentUserId={null} />
