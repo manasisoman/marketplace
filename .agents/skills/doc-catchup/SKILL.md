@@ -1,22 +1,40 @@
 # Doc Catchup Skill
 
-This skill governs how Devin performs a one-time, full documentation catch-up for a
-repository whose code has gotten ahead of its Notion documentation. Use this when
-onboarding a repository or when a significant documentation gap has accumulated.
+This skill governs how Devin performs a **one-time, full documentation catch-up** for
+a repository whose code has gotten ahead of its Notion documentation. It is designed
+for **initial onboarding or major resets only** — not for recurring use.
+
+> **Why not run this every week?** Step 1 re-derives the entire application
+> architecture from scratch, which is expensive and redundant if documentation is
+> being maintained incrementally. Once the initial catchup is complete, the
+> `weekly-doc-batch` skill handles ongoing maintenance by processing individual
+> merged PRs — no full audit needed.
 
 ## When to Use This Skill
 
-- A repository is being onboarded and has features with no corresponding Notion docs
-- A team has shipped multiple releases without updating documentation
-- A reviewer wants a complete audit of code vs. docs coverage
+- **First-time onboarding:** A repository has features with no corresponding Notion docs
+- **Major reset:** A team has shipped many releases without updating documentation
+  and the gap is too large for the weekly batch to handle incrementally
+- **Coverage audit:** A reviewer wants a complete audit of code vs. docs coverage
 
-This skill is NOT for ongoing maintenance — use the `notion-doc-sync` and
-`weekly-doc-batch` skills for that. This is a one-time bulk operation.
+## When NOT to Use This Skill
 
-## Step 1: Full Codebase Audit
+- **Ongoing weekly/monthly maintenance** — use `weekly-doc-batch` instead, which
+  processes individual PRs without re-deriving the full architecture
+- **Single-feature doc updates** — use `notion-doc-sync` instead
+- **If documentation is already mostly current** — the full codebase audit (Step 1)
+  is unnecessary overhead when only a few PRs are undocumented
+
+## Step 1: Full Codebase Audit (one-time only)
 
 Perform a **complete** architecture derivation using the `app-architecture` skill
-(`.agents/skills/app-architecture/SKILL.md`). Run all five steps:
+(`.agents/skills/app-architecture/SKILL.md`). Run all five steps.
+
+> **Note:** This is the most expensive step and the primary reason this skill is
+> not suited for recurring use. After the initial catchup, the `weekly-doc-batch`
+> skill skips this step entirely and works directly from merged PR diffs.
+
+Run all five steps:
 
 1. **Tech stack identification** — Read all `package.json` files, identify frameworks,
    database, and frontend stack
