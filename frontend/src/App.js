@@ -231,6 +231,8 @@ function App() {
                   const params = new URLSearchParams();
                   if (searchQuery.trim()) params.set("q", searchQuery.trim());
                   if (filters.category) params.set("category", filters.category);
+                  if (filters.minPrice) params.set("minPrice", filters.minPrice);
+                  if (filters.maxPrice) params.set("maxPrice", filters.maxPrice);
                   const qs = params.toString();
                   const response = await axios.get(`${API}/products/export/csv${qs ? "?" + qs : ""}`, { responseType: "blob" });
                   const url = window.URL.createObjectURL(new Blob([response.data]));

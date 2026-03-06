@@ -215,6 +215,11 @@ app.get("/products/export/csv", async (req, res) => {
         { description: { $regex: escaped, $options: "i" } },
       ];
     }
+    if (req.query.minPrice || req.query.maxPrice) {
+      filter.price = {};
+      if (req.query.minPrice) filter.price.$gte = parseFloat(req.query.minPrice);
+      if (req.query.maxPrice) filter.price.$lte = parseFloat(req.query.maxPrice);
+    }
 
     const products = await Product.find(filter).sort({ createdAt: -1 });
 
