@@ -205,11 +205,14 @@ app.get("/products/search", async (req, res) => {
 app.get("/products/export/csv", async (req, res) => {
   try {
     const filter = {};
-    if (req.query.category) filter.category = req.query.category;
+    if (req.query.category) {
+      filter.category = { $regex: new RegExp(`^${req.query.category.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, "i") };
+    }
     if (req.query.q) {
+      const escaped = req.query.q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       filter.$or = [
-        { name: { $regex: req.query.q, $options: "i" } },
-        { description: { $regex: req.query.q, $options: "i" } },
+        { name: { $regex: escaped, $options: "i" } },
+        { description: { $regex: escaped, $options: "i" } },
       ];
     }
 

@@ -226,12 +226,24 @@ function App() {
           <div className="export-bar">
             <button
               className="btn btn-secondary"
-              onClick={() => {
-                const params = new URLSearchParams();
-                if (searchQuery.trim()) params.set("q", searchQuery.trim());
-                if (filters.category) params.set("category", filters.category);
-                const qs = params.toString();
-                window.open(`/products/export/csv${qs ? "?" + qs : ""}`, "_blank");
+              onClick={async () => {
+                try {
+                  const params = new URLSearchParams();
+                  if (searchQuery.trim()) params.set("q", searchQuery.trim());
+                  if (filters.category) params.set("category", filters.category);
+                  const qs = params.toString();
+                  const response = await axios.get(`${API}/products/export/csv${qs ? "?" + qs : ""}`, { responseType: "blob" });
+                  const url = window.URL.createObjectURL(new Blob([response.data]));
+                  const link = document.createElement("a");
+                  link.href = url;
+                  link.setAttribute("download", "product-catalog.csv");
+                  document.body.appendChild(link);
+                  link.click();
+                  link.remove();
+                  window.URL.revokeObjectURL(url);
+                } catch (err) {
+                  console.error("Error exporting CSV:", err);
+                }
               }}
             >
               ⬇ Export Catalog (CSV)
