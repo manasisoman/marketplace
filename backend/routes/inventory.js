@@ -166,6 +166,8 @@ router.post("/:id/reserve", auth, async (req, res) => {
       });
     }
 
+    await updateProductStockInfo(entry.productId);
+
     res.json(entry);
   } catch (err) {
     res.status(500).json({ error: "Failed to reserve stock" });
@@ -201,6 +203,8 @@ router.post("/:id/release", auth, async (req, res) => {
         requested: quantity,
       });
     }
+
+    await updateProductStockInfo(entry.productId);
 
     res.json(entry);
   } catch (err) {
