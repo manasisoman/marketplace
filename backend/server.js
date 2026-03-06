@@ -24,6 +24,7 @@ mongoose
 const Product = require("./models/Product");
 const Cart = require("./models/Cart");
 const Favorite = require("./models/Favorite");
+const RecentlyViewed = require("./models/RecentlyViewed");
 const ProductView = require("./models/ProductView");
 const Category = require("./models/Category");
 
@@ -410,6 +411,61 @@ app.delete("/favorites/:id", async (req, res) => {
     res.json({ message: "Favorite removed" });
   } catch (err) {
     res.status(500).json({ error: "Failed to remove favorite" });
+  }
+});
+
+// ─────────────────────────────────────────────
+// RECENTLY VIEWED ENDPOINTS
+// ─────────────────────────────────────────────
+
+// GET recently viewed products (most recent first, max 10)
+app.get("/recently-viewed", async (req, res) => {
+  try {
+    const items = await RecentlyViewed.find().sort({ viewedAt: -1 }).limit(10);
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch recently viewed products" });
+  }
+});
+
+// POST: add/update a recently viewed product
+// If productId already exists, update the timestamp; otherwise create a new entry
+// Also enforces a max of 10 entries by removing the oldest when the limit is exceeded
+app.post("/recently-viewed", async (req, res) => {
+  try {
+    const { productId, name, price, image, category } = req.body;
+    if (!productId || !name || !price) {
+      return res.status(400).json({ error: "productId, name, and price are required" });
+    }
+
+    // Upsert: update viewedAt if already exists, otherwise insert
+    const item = await RecentlyViewed.findOneAndUpdate(
+      { productId },
+      { productId, name, price, image, category, viewedAt: new Date() },
+      { upsert: true, new: true, runValidators: true }
+    );
+
+    // Enforce max 10 entries: remove oldest if over limit
+    const count = await RecentlyViewed.countDocuments();
+    if (count > 10) {
+      const oldest = await RecentlyViewed.find().sort({ viewedAt: 1 }).limit(count - 10);
+      const oldestIds = oldest.map((o) => o._id);
+      await RecentlyViewed.deleteMany({ _id: { $in: oldestIds } });
+    }
+
+    res.status(201).json(item);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to track recently viewed product" });
+  }
+});
+
+// DELETE: clear all recently viewed products
+app.delete("/recently-viewed", async (req, res) => {
+  try {
+    const result = await RecentlyViewed.deleteMany({});
+    res.json({ message: "Recently viewed history cleared", deletedCount: result.deletedCount });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to clear recently viewed history" });
   }
 });
 
