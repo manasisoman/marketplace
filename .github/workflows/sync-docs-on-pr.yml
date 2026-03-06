@@ -1,4 +1,4 @@
-name: Sync Docs on PR Merge
+name: Sync Notion Docs on PR Merge
 
 on:
   pull_request:
@@ -6,124 +6,173 @@ on:
     branches: [main]
 
 jobs:
-  classify-and-propose:
-    if: github.event.pull_request.merged == true
+  sync-docs:
     runs-on: ubuntu-latest
+    # Only run on actual merges, and skip PRs created by Devin to avoid recursive triggers
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.user.login != 'devin-ai-integration[bot]' &&
+      !startsWith(github.event.pull_request.head.ref, 'devin/')
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Trigger Devin for Phase 1 Classification
+      - name: Trigger Devin session for doc sync
         env:
           DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          REPO: ${{ github.repository }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
-          PROMPT_TEMPLATE=$(cat <<'PROMPT_EOF'
-          ## Phase 1 + Conditional Phase 2: Classify and Apply Documentation Updates
 
-          A PR has been merged to main. Your task is to classify the changes,
-          propose documentation updates, and — if the changes are API endpoint
-          changes — auto-apply the documentation updates to Notion.
+          PROMPT=$(cat <<'PROMPT_EOF'
+          A pull request was just merged into main on REPO_PLACEHOLDER:
+          - PR #PR_NUM_PLACEHOLDER: "PR_TITLE_PLACEHOLDER"
+          - Author: PR_AUTHOR_PLACEHOLDER
+          - Branch: HEAD_REF_PLACEHOLDER -> BASE_REF_PLACEHOLDER
 
-          **PR Details:**
-          - PR #__PR_NUMBER__: __PR_TITLE__
-          - Author: __PR_AUTHOR__
-          - Merge commit: __MERGE_SHA__
+          ## Your Task
+          Analyze the merged PR and determine whether any Notion documentation needs updating.
+          You will dynamically discover relevant Notion docs and Slack context — nothing is hardcoded.
 
-          **Instructions:**
+          ## Step 1: Read the PR diff and comments
+          Use git_view_pr for the repo and PR number above. Read:
+          - The full diff (all changed files)
+          - The PR description and any review comments
+          - Any linked issues or ticket references
+          Summarize the nature of the changes.
 
-          ### Step 1: Classify (Phase 1)
-          1. Read the PR diff to understand what changed
-          2. Derive the feature area by analyzing the files changed (use the
-             app-architecture skill's self-derivation approach — do NOT rely on
-             hardcoded mappings)
-          3. Determine whether the changes are **API endpoint changes** (e.g.,
-             new/modified routes, query parameters, response shapes, middleware
-             in backend route files) vs. other changes (frontend/UI, customer
-             experience, config, tooling, etc.)
-          4. Determine which Notion page(s) need updating based on the feature area
-          5. Follow the Notion Page Creation Policy defined in the
-             notion-doc-sync skill to decide whether to update existing pages
-             or create new ones. Use your judgment per the policy criteria.
-          6. Post a classification comment on the PR with:
-             - Feature area identified
-             - Whether this is an API endpoint change or another type of change
-             - Notion page(s) to update or create
-             - Summary of proposed documentation changes
-             - If recommending a new page, include the rationale
+          ## Step 2: Classify the change
+          Determine which category the PR falls into:
 
-          ### Step 2: Apply or Defer (Phase 2)
-          After posting the classification comment, decide the next step. A single
-          PR may contain BOTH API and non-API changes — handle each type separately:
+          | Change Type | Documentation Action |
+          |-------------|---------------------|
+          | Behavioral changes (new features, changed API responses, new UI) | Full doc update — search for and update all relevant docs (PRDs, technical specs, API references) |
+          | Refactors (renamed internals, no runtime impact) | Changelog entry only. Do NOT update feature docs, endpoints, or schemas |
+          | Configuration changes (env vars, CORS, ports) | Update technical/config docs only. No PRD unless user-facing |
+          | API changes (new/modified/removed endpoints, changed request/response) | Update API references + technical docs + PRD if user-facing |
+          | Customer-specific overrides (feature flags, tenant logic) | Technical docs only with callout noting scope |
+          | Temporary workarounds (hotfixes, monkey-patches) | Changelog entry only |
 
-          **For API endpoint changes within the PR** (auto-apply):
-          - Auto-apply ONLY the API endpoint documentation (e.g., new/modified
-            routes, query parameters, response shapes, middleware, and directly
-            related API Reference page updates including endpoint-specific data
-            model tables).
-          - For each API doc change:
-            a. Fetch the current content of the target Notion page
-            b. Apply the updates following doc-standards skill conventions
-          - If the Notion Page Creation Policy calls for a new page, create it
-            following the policy guidelines.
-          - Post a follow-up comment on the PR confirming which API doc changes
-            were applied, with links to the updated/created Notion pages.
+          Do NOT hallucinate intent. If the purpose is unclear, post a comment on the PR:
+          > "Intent unclear from PR context. Please clarify whether this change is user-facing and which documentation sections should be updated."
+          Then stop.
 
-          **For non-API changes within the PR** (file GitHub Issues):
-          - Do NOT apply non-API documentation to Notion directly. Non-API changes
-            include: PRD feature stories, functional requirements, TDD model schemas,
-            TDD architecture sections, frontend component documentation, and any
-            other changes that are not API endpoint documentation.
-          - Instead, create GitHub Issues for the non-API documentation, grouped by
-            feature area. Each Issue should contain:
-            a. Title: "Doc Update — [Feature Name]: [Brief description]"
-            b. The proposed Notion content (fully drafted per doc-standards templates)
-            c. Target Notion page (existing page URL or "New page under [parent]")
-            d. A note: "Comment `/approve-docs` to apply these changes to Notion."
-          - Include a summary in the PR comment listing the GitHub Issues created
-            for non-API changes.
+          ## Step 3: Gather Slack context
+          Search Slack for discussions related to this PR. Use keywords from:
+          - The PR title and branch name
+          - Any ticket/issue IDs referenced in the PR (e.g., PROJ-123, #42)
+          - Feature names or component names mentioned in the diff
 
-          **If the PR contains ONLY non-API changes** (no API endpoints at all):
-          - Do NOT apply any changes to Notion.
-          - Create GitHub Issues for the non-API documentation changes, grouped
-            by feature area, following the same format as above (title, drafted
-            content, target Notion page, `/approve-docs` note).
-          - End the classification comment with a note listing the Issues created:
-            "Non-API change — GitHub Issues filed for review. Comment
-            `/approve-docs` on each to apply. The weekly-doc-batch process may
-            also gather additional Slack context for these changes."
+          Look for:
+          - Why the change was made (customer requests, bug reports, product decisions)
+          - Any additional context about expected behavior or scope
+          - Stakeholder discussions that clarify intent
 
-          **Skills to reference:**
-          - .agents/skills/notion-doc-sync/SKILL.md — for Notion page creation policy
-          - .agents/skills/doc-standards/SKILL.md — for documentation formatting standards
-          - .agents/skills/app-architecture/SKILL.md — for how to derive architecture
+          This Slack context should enrich the documentation updates, especially for PRDs
+          where customer-facing rationale matters.
+
+          ## Step 4: Discover relevant Notion documents
+          Use the Notion MCP search tool (notion-search) to find all documentation pages
+          related to this repository and the changes in this PR. Search for:
+          - The project/product name (e.g., "marketplace", "ShopHub")
+          - Document types: "PRD", "technical design", "API reference", "TDD", "spec"
+          - Feature-specific terms from the PR diff
+
+          For each document found, use notion-fetch to read its current content and determine
+          whether it needs updating based on the change classification from Step 2.
+
+          ## Step 5: Update relevant Notion documents
+          For each Notion document that needs updating, use notion-update-page to make
+          targeted updates. Follow these rules:
+
+          ### What to update based on document type
+          - **PRDs / Product docs**: Add new features, update functional requirements,
+            include customer context gathered from Slack
+          - **Technical design docs**: Update architecture sections, data models,
+            file structure, component tables, endpoint summaries
+          - **API references**: Add/update endpoint documentation, data schemas,
+            error references, auth matrix, changelog entries
+          - **Any other relevant docs**: Update sections that are affected by the code changes
+
+          ### Formatting rules
+          - Fetch the Notion enhanced markdown spec (notion://docs/enhanced-markdown-spec) before writing
+          - Use notion-fetch with parameter "id" to read pages
+          - Use notion-update-page with "page_id" parameter to write
+          - selection_with_ellipsis must uniquely identify the target location (~20+ chars start...end)
+          - If an update exceeds 200 lines, break it into multiple smaller insertions
+          - Preserve the existing formatting style of each document
+
+          ### Guardrails
+          1. Only modify sections relevant to the code changes
+          2. Never rewrite an entire page — make targeted, surgical edits
+          3. Never remove existing content unless the corresponding code was deleted
+          4. Avoid duplication — fetch the page first, confirm the content doesn't already exist
+          5. Preserve all existing formatting, headers, and structure exactly
+          6. Match the tone and style of the existing document
+
+          ## Step 6: Post a summary comment on the PR
+          After completing (or determining no update is needed), post a comment on the PR:
+
+          If docs were updated:
+          ```
+          ## Notion Documentation Sync
+
+          **Change classification**: [type]
+
+          **Slack context**: [brief summary of relevant Slack discussions found, or "none found"]
+
+          **Documents updated**:
+          - [Document name]: [sections updated]
+          - [Document name]: [sections updated]
+          (list all documents that were updated)
+
+          **Summary**: [brief description of what was added/changed and why]
+          ```
+
+          If no update needed:
+          ```
+          ## Notion Documentation Sync
+
+          **Change classification**: [type] (no doc update required)
+
+          No Notion documentation changes needed for this PR.
+          ```
+
+          ## Forbidden Actions
+          - Do NOT rewrite entire Notion pages
+          - Do NOT remove existing documentation unless corresponding code was deleted
+          - Do NOT create new Notion pages — only update existing ones you discover via search
+          - Do NOT make any code changes — this is documentation-only
+          - Do NOT guess or fabricate information — only document what is evidenced in the code and PR
           PROMPT_EOF
-          )
 
-          PAYLOAD=$(jq -n \
-            --arg template "$PROMPT_TEMPLATE" \
-            --arg pr_number "$PR_NUMBER" \
-            --arg pr_title "$PR_TITLE" \
-            --arg pr_author "$PR_AUTHOR" \
-            --arg merge_sha "$MERGE_SHA" \
-            '{prompt: ($template | gsub("__PR_NUMBER__"; $pr_number) | gsub("__PR_TITLE__"; $pr_title) | gsub("__PR_AUTHOR__"; $pr_author) | gsub("__MERGE_SHA__"; $merge_sha))}')
+          # Substitute placeholders (all values come from env vars, not direct ${{ }} interpolation)
+          PROMPT="${PROMPT//REPO_PLACEHOLDER/$REPO}"
+          PROMPT="${PROMPT//PR_NUM_PLACEHOLDER/$PR_NUMBER}"
+          PROMPT="${PROMPT//PR_TITLE_PLACEHOLDER/$PR_TITLE}"
+          PROMPT="${PROMPT//PR_AUTHOR_PLACEHOLDER/$PR_AUTHOR}"
+          PROMPT="${PROMPT//HEAD_REF_PLACEHOLDER/$HEAD_REF}"
+          PROMPT="${PROMPT//BASE_REF_PLACEHOLDER/$BASE_REF}"
 
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://api.devin.ai/v1/sessions" \
+          echo "Triggering Devin session for PR #${PR_NUMBER}..."
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://api.devin.ai/v3/organizations/sessions" \
             -H "Authorization: Bearer ${DEVIN_API_KEY}" \
             -H "Content-Type: application/json" \
-            -d "$PAYLOAD")
+            -d "$(jq -n --arg prompt "$PROMPT" '{prompt: $prompt}')")
 
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | sed '$d')
+          BODY=$(echo "$RESPONSE" | head -n -1)
 
-          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 400 ]; then
-            echo "Error triggering Devin session: HTTP $HTTP_CODE"
-            echo "$BODY"
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            SESSION_ID=$(echo "$BODY" | jq -r '.session_id // .id // "unknown"')
+            SESSION_URL=$(echo "$BODY" | jq -r '.url // "unknown"')
+            echo "Devin session created successfully!"
+            echo "Session ID: ${SESSION_ID}"
+            echo "Session URL: ${SESSION_URL}"
+          else
+            echo "Failed to create Devin session (HTTP ${HTTP_CODE})"
+            echo "Response: ${BODY}"
             exit 1
           fi
-
-          SESSION_URL=$(echo "$BODY" | jq -r '.url // empty')
-          echo "Devin session created: $SESSION_URL"
