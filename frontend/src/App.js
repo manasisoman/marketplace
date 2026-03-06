@@ -223,6 +223,22 @@ function App() {
           <SearchFilters onFilterChange={handleFilterChange} />
         )}
         {view === "home" && (
+          <div className="export-bar">
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                const params = new URLSearchParams();
+                if (searchQuery.trim()) params.set("q", searchQuery.trim());
+                if (filters.category) params.set("category", filters.category);
+                const qs = params.toString();
+                window.open(`/products/export/csv${qs ? "?" + qs : ""}`, "_blank");
+              }}
+            >
+              ⬇ Export Catalog (CSV)
+            </button>
+          </div>
+        )}
+        {view === "home" && (
           <ProductGrid
             products={products}
             loading={loading}
