@@ -26,6 +26,7 @@ const Cart = require("./models/Cart");
 const Favorite = require("./models/Favorite");
 const ProductView = require("./models/ProductView");
 const Category = require("./models/Category");
+const CartMeta = require("./models/CartMeta");
 
 // Import route files
 const reviewsRouter = require("./routes/reviews");
@@ -357,6 +358,34 @@ app.delete("/cart/:id", async (req, res) => {
     res.json({ message: "Item removed from cart" });
   } catch (err) {
     res.status(500).json({ error: "Failed to remove cart item" });
+  }
+});
+
+// ENDPOINT: GET cart notes / PO number
+// Example: GET http://localhost:5000/cart/notes
+app.get("/cart/notes", async (req, res) => {
+  try {
+    let meta = await CartMeta.findOne();
+    if (!meta) meta = { poNumber: "", orderNotes: "" };
+    res.json({ poNumber: meta.poNumber, orderNotes: meta.orderNotes });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch cart notes" });
+  }
+});
+
+// ENDPOINT: SAVE cart notes / PO number
+// Example: PUT http://localhost:5000/cart/notes  with { poNumber, orderNotes }
+app.put("/cart/notes", async (req, res) => {
+  try {
+    const { poNumber, orderNotes } = req.body;
+    const meta = await CartMeta.findOneAndUpdate(
+      {},
+      { poNumber: poNumber || "", orderNotes: orderNotes || "" },
+      { new: true, upsert: true }
+    );
+    res.json({ poNumber: meta.poNumber, orderNotes: meta.orderNotes });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to save cart notes" });
   }
 });
 
