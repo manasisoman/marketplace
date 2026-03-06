@@ -280,6 +280,33 @@ app.get("/products/:id", async (req, res) => {
   }
 });
 
+// ENDPOINT: GET bulk pricing tiers for a product
+// Example: GET http://localhost:5000/products/64abc123.../bulk-pricing
+app.get("/products/:id/bulk-pricing", async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ error: "Product not found" });
+
+    const basePrice = product.price;
+    const tiers = [
+      { minQty: 1, maxQty: 9, discount: 0, unitPrice: basePrice, label: "Standard" },
+      { minQty: 10, maxQty: 49, discount: 5, unitPrice: parseFloat((basePrice * 0.95).toFixed(2)), label: "10+ units" },
+      { minQty: 50, maxQty: 99, discount: 10, unitPrice: parseFloat((basePrice * 0.90).toFixed(2)), label: "50+ units" },
+      { minQty: 100, maxQty: 499, discount: 15, unitPrice: parseFloat((basePrice * 0.85).toFixed(2)), label: "100+ units" },
+      { minQty: 500, maxQty: null, discount: 20, unitPrice: parseFloat((basePrice * 0.80).toFixed(2)), label: "500+ units" },
+    ];
+
+    res.json({
+      productId: product._id,
+      productName: product.name,
+      basePrice,
+      tiers,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch bulk pricing" });
+  }
+});
+
 // ENDPOINT 5: CREATE a new product
 // Example: POST http://localhost:5000/products  with JSON body
 app.post("/products", async (req, res) => {
