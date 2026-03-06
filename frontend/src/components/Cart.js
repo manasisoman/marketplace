@@ -1,9 +1,25 @@
 import { useState, useEffect, useRef } from "react";
+import axios from "axios";
 import CouponInput from "./CouponInput";
+
+const API = "";
 
 function Cart({ items, total, onRemove, onUpdateQuantity, onBack, currentUserId }) {
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const prevTotalRef = useRef(total);
+  const [poNumber, setPoNumber] = useState("");
+  const [orderNotes, setOrderNotes] = useState("");
+  const [notesSaved, setNotesSaved] = useState(false);
+
+  // Fetch saved PO number and order notes
+  useEffect(() => {
+    axios.get(`${API}/cart/notes`)
+      .then((res) => {
+        setPoNumber(res.data.poNumber || "");
+        setOrderNotes(res.data.orderNotes || "");
+      })
+      .catch(() => {});
+  }, []);
 
   // Reset applied coupon when cart total changes (items added/removed/quantity changed)
   useEffect(() => {
@@ -12,6 +28,15 @@ function Cart({ items, total, onRemove, onUpdateQuantity, onBack, currentUserId 
     }
     prevTotalRef.current = total;
   }, [total, appliedCoupon]);
+
+  const saveNotes = () => {
+    axios.put(`${API}/cart/notes`, { poNumber, orderNotes })
+      .then(() => {
+        setNotesSaved(true);
+        setTimeout(() => setNotesSaved(false), 2000);
+      })
+      .catch(() => {});
+  };
 
   const finalTotal = appliedCoupon ? appliedCoupon.newTotal : total;
   if (items.length === 0) {
@@ -98,6 +123,33 @@ function Cart({ items, total, onRemove, onUpdateQuantity, onBack, currentUserId 
           currentUserId={currentUserId}
           onCouponApplied={setAppliedCoupon}
         />
+      </div>
+
+      <div className="cart-po-section">
+        <h3>Purchase Order Details</h3>
+        <div className="form-group">
+          <label>PO Number</label>
+          <input
+            type="text"
+            className="po-input"
+            placeholder="e.g. PO-2026-00412"
+            value={poNumber}
+            onChange={(e) => setPoNumber(e.target.value)}
+            onBlur={saveNotes}
+          />
+        </div>
+        <div className="form-group">
+          <label>Order Notes</label>
+          <textarea
+            className="order-notes-input"
+            placeholder="Delivery instructions, special requirements, etc."
+            value={orderNotes}
+            onChange={(e) => setOrderNotes(e.target.value)}
+            onBlur={saveNotes}
+            rows={3}
+          />
+        </div>
+        {notesSaved && <span className="notes-saved-indicator">Saved ✓</span>}
       </div>
 
       <div className="cart-summary">
