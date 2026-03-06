@@ -1142,6 +1142,62 @@ body {
   font-weight: 700;
   color: var(--primary);
 }
+/* ─── Request Quote Form (ProductCard) ────────────────────────── */
+.quote-form-container {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.quote-form-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+
+.quote-form-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.quote-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.quote-form-fields .form-group label {
+  font-size: 0.8rem;
+}
+
+.quote-form-fields .form-group input,
+.quote-form-fields .form-group textarea {
+  padding: 0.5rem 0.7rem;
+  font-size: 0.85rem;
+}
+
+.quote-form-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.quote-form-actions .btn {
+  font-size: 0.8rem;
+  padding: 0.4rem 0.8rem;
+}
+
+.quote-success {
+  background: #e8f5e9;
+  color: #2e7d32;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: center;
+}
+
 /* ─── Responsive ──────────────────────────────────────────────── */
 @media (max-width: 600px) {
   .navbar {
