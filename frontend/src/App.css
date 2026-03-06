@@ -996,6 +996,14 @@ body {
   font-weight: 500;
 }
 
+/* ─── Export Bar ─────────────────────────────────────────────── */
+.export-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 2rem;
+  margin-bottom: 0.5rem;
+}
+
 /* ─── Bulk Pricing ───────────────────────────────────────────── */
 .bulk-pricing-section {
   margin: 1rem 0;

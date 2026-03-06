@@ -202,6 +202,63 @@ app.get("/products/search", async (req, res) => {
   }
 });
 
+// ENDPOINT: EXPORT products as CSV
+// Example: GET http://localhost:5000/products/export/csv
+app.get("/products/export/csv", async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.category) {
+      filter.category = { $regex: new RegExp(`^${req.query.category.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, "i") };
+    }
+    if (req.query.q) {
+      const escaped = req.query.q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      filter.$or = [
+        { name: { $regex: escaped, $options: "i" } },
+        { description: { $regex: escaped, $options: "i" } },
+      ];
+    }
+    if (req.query.minPrice || req.query.maxPrice) {
+      filter.price = {};
+      if (req.query.minPrice) filter.price.$gte = parseFloat(req.query.minPrice);
+      if (req.query.maxPrice) filter.price.$lte = parseFloat(req.query.maxPrice);
+    }
+
+    const products = await Product.find(filter).sort({ createdAt: -1 });
+
+    const header = "Name,Price,Category,Description,In Stock,Date Listed";
+    const escapeCSV = (val) => {
+      let str = String(val ?? "");
+      // Prevent CSV injection: prefix formula-triggering characters
+      if (/^[=+\-@\t\r]/.test(str)) {
+        str = "'" + str;
+      }
+      if (str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r")) {
+        return '"' + str.replace(/"/g, '""') + '"';
+      }
+      return str;
+    };
+
+    const rows = products.map((p) =>
+      [
+        escapeCSV(p.name),
+        p.price.toFixed(2),
+        escapeCSV(p.category || "General"),
+        escapeCSV(p.description || ""),
+        p.totalStock === undefined ? "Yes" : p.totalStock > 0 ? "Yes" : "No",
+        p.createdAt ? new Date(p.createdAt).toISOString().split("T")[0] : "",
+      ].join(",")
+    );
+
+    const csv = [header, ...rows].join("\n");
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", "attachment; filename=product-catalog.csv");
+    res.send(csv);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to export products" });
+  }
+});
+
 // ENDPOINT 4: GET a single product by its ID
 // Example: GET http://localhost:5000/products/64abc123...
 // Also tracks product views for analytics (fire-and-forget)
