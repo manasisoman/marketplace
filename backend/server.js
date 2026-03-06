@@ -226,8 +226,12 @@ app.get("/products/export/csv", async (req, res) => {
 
     const header = "Name,Price,Category,Description,In Stock,Date Listed";
     const escapeCSV = (val) => {
-      const str = String(val ?? "");
-      if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+      let str = String(val ?? "");
+      // Prevent CSV injection: prefix formula-triggering characters
+      if (/^[=+\-@\t\r]/.test(str)) {
+        str = "'" + str;
+      }
+      if (str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r")) {
         return '"' + str.replace(/"/g, '""') + '"';
       }
       return str;
