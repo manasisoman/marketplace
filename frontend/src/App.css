@@ -996,6 +996,53 @@ body {
   font-weight: 500;
 }
 
+/* ─── Bulk Pricing ───────────────────────────────────────────── */
+.bulk-pricing-section {
+  margin: 1rem 0;
+}
+
+.bulk-pricing-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.bulk-pricing-table th {
+  background: var(--bg);
+  padding: 0.6rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+  border-bottom: 2px solid var(--border);
+}
+
+.bulk-pricing-table td {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.bulk-pricing-table tr.tier-discounted td {
+  color: #2e7d32;
+  font-weight: 500;
+}
+
+.bulk-discount-badge {
+  position: absolute;
+  bottom: 0.6rem;
+  right: 0.6rem;
+  background: #2e7d32;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 50px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
 /* ─── Recently Viewed ────────────────────────────────────────── */
 .recently-viewed-section {
   margin-bottom: 1.75rem;

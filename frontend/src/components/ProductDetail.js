@@ -1,9 +1,12 @@
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
+import axios from "axios";
 import VariantSelector from "./VariantSelector";
 import InventoryManager from "./InventoryManager";
 import StarRating from "./StarRating";
 import ReviewList from "./ReviewList";
 import ReviewForm from "./ReviewForm";
+
+const API = "";
 
 const CATEGORIES = ["General", "Electronics", "Clothing", "Books", "Home & Garden", "Sports", "Toys", "Food"];
 
@@ -19,6 +22,14 @@ function ProductDetail({ product, onAddToCart, onDelete, onEdit, onBack }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [reviewRefreshKey, setReviewRefreshKey] = useState(0);
+  const [bulkPricing, setBulkPricing] = useState(null);
+  const [showBulkPricing, setShowBulkPricing] = useState(false);
+
+  useEffect(() => {
+    axios.get(`${API}/products/${product._id}/bulk-pricing`)
+      .then((res) => setBulkPricing(res.data))
+      .catch(() => {});
+  }, [product._id]);
 
   const handleReviewSubmitted = useCallback(() => {
     setReviewRefreshKey((k) => k + 1);
@@ -97,6 +108,37 @@ function ProductDetail({ product, onAddToCart, onDelete, onEdit, onBack }) {
           <div className="product-detail-price">
             ${Number(product.price).toFixed(2)}
           </div>
+
+          {bulkPricing && (
+            <div className="bulk-pricing-section">
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => setShowBulkPricing(!showBulkPricing)}
+              >
+                {showBulkPricing ? "Hide Bulk Pricing" : "View Bulk Pricing Tiers"}
+              </button>
+              {showBulkPricing && (
+                <table className="bulk-pricing-table">
+                  <thead>
+                    <tr>
+                      <th>Quantity</th>
+                      <th>Unit Price</th>
+                      <th>Discount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bulkPricing.tiers.map((tier, i) => (
+                      <tr key={i} className={tier.discount > 0 ? "tier-discounted" : ""}>
+                        <td>{tier.maxQty ? `${tier.minQty}–${tier.maxQty}` : `${tier.minQty}+`}</td>
+                        <td>${tier.unitPrice.toFixed(2)}</td>
+                        <td>{tier.discount > 0 ? `${tier.discount}% off` : "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
 
           {product.brand && (
             <div className="product-detail-brand">Brand: {product.brand}</div>

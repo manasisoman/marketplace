@@ -30,6 +30,7 @@ function ProductCard({ product, onAddToCart, onDelete, onViewProduct, favorites,
         {product.category && (
           <span className="product-category">{product.category}</span>
         )}
+        <span className="bulk-discount-badge">Bulk Discounts</span>
       </div>
 
       <div className="product-info">
