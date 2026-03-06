@@ -308,6 +308,50 @@ app.get("/products/:id/bulk-pricing", async (req, res) => {
   }
 });
 
+// ENDPOINT: GET related products by category
+// Example: GET http://localhost:5000/products/64abc123.../related?limit=6
+// Returns other products in the same category, excluding the current product.
+// Useful for "You may also like" or "Related products" sections.
+app.get("/products/:id/related", async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ error: "Product not found" });
+
+    const limit = Math.min(20, Math.max(1, parseInt(req.query.limit) || 6));
+
+    // Find other products in the same category, excluding the current product
+    const filter = {
+      _id: { $ne: product._id },
+    };
+    if (product.category) {
+      filter.category = product.category;
+    } else {
+      // No category set — return empty related products rather than unrelated ones
+      return res.json({
+        productId: product._id,
+        productName: product.name,
+        category: null,
+        related: [],
+        count: 0,
+      });
+    }
+
+    const related = await Product.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(limit);
+
+    res.json({
+      productId: product._id,
+      productName: product.name,
+      category: product.category || null,
+      related,
+      count: related.length,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch related products" });
+  }
+});
+
 // ENDPOINT 5: CREATE a new product
 // Example: POST http://localhost:5000/products  with JSON body
 app.post("/products", async (req, res) => {
