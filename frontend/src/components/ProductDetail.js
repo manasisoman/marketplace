@@ -6,6 +6,8 @@ import StarRating from "./StarRating";
 import ReviewList from "./ReviewList";
 import ReviewForm from "./ReviewForm";
 
+const API = "";
+
 const CATEGORIES = ["General", "Electronics", "Clothing", "Books", "Home & Garden", "Sports", "Toys", "Food"];
 
 function ProductDetail({ product, onAddToCart, onDelete, onEdit, onBack }) {
@@ -24,7 +26,7 @@ function ProductDetail({ product, onAddToCart, onDelete, onEdit, onBack }) {
   const [showBulkPricing, setShowBulkPricing] = useState(false);
 
   useEffect(() => {
-    axios.get(`/products/${product._id}/bulk-pricing`)
+    axios.get(`${API}/products/${product._id}/bulk-pricing`)
       .then((res) => setBulkPricing(res.data))
       .catch(() => {});
   }, [product._id]);
