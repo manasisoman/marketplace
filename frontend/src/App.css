@@ -955,6 +955,14 @@ body {
   border-top: 1px solid var(--border);
 }
 
+/* ─── Export Bar ─────────────────────────────────────────────── */
+.export-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 2rem;
+  margin-bottom: 0.5rem;
+}
+
 /* ─── Bulk Pricing ───────────────────────────────────────────── */
 .bulk-pricing-section {
   margin: 1rem 0;
@@ -1002,7 +1010,6 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.4px;
 }
-
 /* ─── Recently Viewed ────────────────────────────────────────── */
 .recently-viewed-section {
   margin-bottom: 1.75rem;
