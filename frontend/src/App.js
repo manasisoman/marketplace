@@ -12,6 +12,7 @@ import SearchFilters from "./components/SearchFilters";
 import Messages from "./pages/Messages";
 import CouponManager from "./pages/CouponManager";
 import Wishlists from "./pages/Wishlists";
+import RecentlyViewed from "./components/RecentlyViewed";
 import "./App.css";
 
 const API = "";
@@ -28,12 +29,14 @@ function App() {
   const [favorites, setFavorites] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [filters, setFilters] = useState({});
+  const [recentlyViewed, setRecentlyViewed] = useState([]);
 
   // Load products when app first opens
   useEffect(() => {
     fetchProducts();
     fetchCart();
     fetchFavorites();
+    fetchRecentlyViewed();
   }, []);
 
   // Re-run search whenever searchQuery or filters change
@@ -100,6 +103,8 @@ function App() {
       const res = await axios.get(`${API}/products/${productId}`);
       setSelectedProduct(res.data);
       setView("detail");
+      // Track as recently viewed (fire-and-forget)
+      trackRecentlyViewed(res.data);
     } catch (err) {
       console.error("Error fetching product:", err);
     }
@@ -208,6 +213,40 @@ function App() {
     }
   };
 
+  // Recently Viewed
+  const fetchRecentlyViewed = async () => {
+    try {
+      const res = await axios.get(`${API}/recently-viewed`);
+      setRecentlyViewed(res.data);
+    } catch (err) {
+      console.error("Error fetching recently viewed:", err);
+    }
+  };
+
+  const trackRecentlyViewed = async (product) => {
+    try {
+      await axios.post(`${API}/recently-viewed`, {
+        productId: product._id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        category: product.category || "",
+      });
+      fetchRecentlyViewed();
+    } catch (err) {
+      console.error("Error tracking recently viewed:", err);
+    }
+  };
+
+  const clearRecentlyViewed = async () => {
+    try {
+      await axios.delete(`${API}/recently-viewed`);
+      setRecentlyViewed([]);
+    } catch (err) {
+      console.error("Error clearing recently viewed:", err);
+    }
+  };
+
   return (
     <div className="app">
       <Navbar
@@ -251,6 +290,13 @@ function App() {
               ⬇ Export Catalog (CSV)
             </button>
           </div>
+        )}
+        {view === "home" && (
+          <RecentlyViewed
+            items={recentlyViewed}
+            onViewProduct={viewProduct}
+            onClear={clearRecentlyViewed}
+          />
         )}
         {view === "home" && (
           <ProductGrid
