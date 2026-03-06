@@ -325,6 +325,15 @@ app.get("/products/:id/related", async (req, res) => {
     };
     if (product.category) {
       filter.category = product.category;
+    } else {
+      // No category set — return empty related products rather than unrelated ones
+      return res.json({
+        productId: product._id,
+        productName: product.name,
+        category: null,
+        related: [],
+        count: 0,
+      });
     }
 
     const related = await Product.find(filter)
