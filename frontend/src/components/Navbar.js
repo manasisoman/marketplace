@@ -2,7 +2,7 @@ function Navbar({ view, setView, cartCount, searchQuery, setSearchQuery }) {
   return (
     <nav className="navbar">
       <div className="navbar-brand" onClick={() => setView("home")}>
-        ShopHub
+        TradeHub
       </div>
 
       {/* Search bar — only shows on home view */}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const CATEGORIES = ["General", "Electronics", "Clothing", "Books", "Home & Garden", "Sports", "Toys", "Food"];
+const CATEGORIES = ["General", "Electronics", "Clothing", "Books", "Home and Garden", "Sports", "Toys", "Food"];
 
 function AddProductForm({ onSubmit, onCancel }) {
   // Each field in the form has its own piece of state
@@ -31,7 +31,7 @@ function AddProductForm({ onSubmit, onCancel }) {
     } catch (err) {
       // Show a helpful error message — most likely the backend isn't running
       if (err.code === "ERR_NETWORK" || err.message === "Network Error") {
-        setError("Cannot reach the server. Make sure the backend is running on port 5000.");
+        setError("Cannot reach the server. Make sure the backend is running on port 3001.");
       } else {
         setError(err.response?.data?.error || "Something went wrong. Please try again.");
       }
