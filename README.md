@@ -10,6 +10,13 @@ A full-stack marketplace web application built with React, Node.js, Express, and
 - Add products to cart (with quantity tracking)
 - Remove items from cart with real-time total calculation
 - Delete product listings
+- Apply coupon codes for discounts
+- Track inventory levels per product variant
+- Save products to a wishlist
+- Leave product reviews and ratings
+- Place and manage orders
+- Message sellers via conversations
+- View sales analytics
 
 ## Tech Stack
 
@@ -19,8 +26,9 @@ A full-stack marketplace web application built with React, Node.js, Express, and
 | Backend | Node.js, Express |
 | Database | MongoDB Atlas (Mongoose) |
 
-## API Endpoints (10 total)
+## API Endpoints
 
+### Core
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/` | Health check |
@@ -30,9 +38,30 @@ A full-stack marketplace web application built with React, Node.js, Express, and
 | POST | `/products` | Create a product |
 | PUT | `/products/:id` | Update a product |
 | DELETE | `/products/:id` | Delete a product |
+
+### Cart
+| Method | Endpoint | Description |
+|--------|----------|-------------|
 | GET | `/cart` | Get cart items + total |
 | POST | `/cart` | Add item to cart |
+| PUT | `/cart/:id` | Update cart item quantity |
+| DELETE | `/cart` | Clear entire cart |
 | DELETE | `/cart/:id` | Remove cart item |
+
+### Additional Features
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/favorites` | List / add favorites |
+| DELETE | `/favorites/:id` | Remove a favorite |
+| GET/POST | `/categories` | List / create categories |
+| GET/POST/DELETE | `/api/coupons` | Coupon management |
+| GET/POST/PUT | `/api/inventory` | Inventory management |
+| GET/POST/PUT/DELETE | `/api/wishlists` | Wishlist management |
+| GET/POST/PUT/DELETE | `/api/reviews` | Product reviews |
+| GET/POST/PUT | `/api/orders` | Order management |
+| GET | `/api/analytics` | Sales analytics |
+| GET/POST | `/api/conversations` | Seller conversations |
+| GET/POST | `/api/messages` | Conversation messages |
 
 ## Running Locally
 
